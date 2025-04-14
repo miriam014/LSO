@@ -3,7 +3,7 @@ import java.net.*;
 
 public class Main {
     public static void main(String[] args) {
-        final int SERVER_PORT = 5000; // porta per connettersi al server
+        final int SERVER_PORT = 5001; // porta per connettersi al server
         final String SERVER_IP = "127.0.0.1"; // IP del server (localhost)
 
         try (Socket socket = new Socket(SERVER_IP, SERVER_PORT); // usa try-with-resources per chiudere automaticamente il socket

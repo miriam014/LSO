@@ -1,13 +1,15 @@
 #include "server_function.h"
 
+int clients[MAX_CLIENTS]={0}; //variabile globale clients per vederla anche all'esterno del codice
 
-int main(){
+int main() {
     int sSocket = setup_server(); //socket del server
     int cSocket; //socket del client
     struct sockaddr_in client_addr;
     socklen_t addr_size; 
     pthread_t tid; //thread id
 
+    printf("clients address: %p\n", clients);  
     int client_count = 0; //contatore dei client connessi
     while (client_count < MAX_CLIENTS) {
        addr_size = sizeof(client_addr); //dimensione dell'indirizzo del client
