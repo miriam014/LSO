@@ -1,0 +1,18 @@
+# Ignora i file di configurazione IDE
+.idea/
+
+# Ignora la cartella out/
+out/
+
+# Ignora i file di configurazione di IntelliJ IDEA
+*.iml
+
+# Ignora file di log
+*.log
+
+# Ignora Docker
+*.docker
+Dockerfile
+
+# Ignora le cartelle di compilazione Java
+*.class
