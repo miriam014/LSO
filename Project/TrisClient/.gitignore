@@ -10,6 +10,8 @@ out/
 # Ignora file di log
 *.log
 
+.DS_Store
+
 # Ignora Docker
 *.docker
 Dockerfile
