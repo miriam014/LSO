@@ -11,6 +11,7 @@ int main() {
 
     printf("clients address: %p\n", clients);  
     int client_count = 0; //contatore dei client connessi
+
     while (client_count < MAX_CLIENTS) {
        addr_size = sizeof(client_addr); //dimensione dell'indirizzo del client
        cSocket = accept(sSocket, (struct sockaddr *)&client_addr, &addr_size); //accetto la connessione del client
