@@ -21,6 +21,10 @@ void *handle_client(void *arg) {
                 send(clients[i], buffer, strlen(buffer), 0);
             }
         }
+
+          // Rispondi direttamente al client con un messaggio di conferma o altro
+          const char* response = "Messaggio ricevuto!";
+          send(cSocket, response, strlen(response), 0);
     }
         close(cSocket); //chiudo il socket
         return NULL; //termino il thread
