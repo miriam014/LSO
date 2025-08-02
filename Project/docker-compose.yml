@@ -1,0 +1,21 @@
+services:
+  server:
+    build: ./TrisServer
+    container_name: server
+    ports:
+      - "5001:5001"
+    networks:
+      - tris-net
+
+  client:
+    build: ./TrisClient
+    container_name: client
+    depends_on:
+      - server
+    networks:
+      - tris-net
+    tty: true
+
+networks:
+  tris-net:
+    driver: bridge

@@ -13,8 +13,8 @@
 #define MAX_CLIENTS 2
 
 extern int clients[MAX_CLIENTS]; // Dichiarazione esterna dell'array dei client così può essere usato in altri file
-
+    
 void *handle_client(void *arg);  // Dichiarazione della funzione
-int setup_server();              // Funzione per configurare il server
+int setup_server();              // Funzione per configurare il server (apre la soket e mette il server in ascolto)
 
 #endif

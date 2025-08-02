@@ -1,11 +1,17 @@
 # Ignora i file di configurazione IDE
 .idea/
 
+# Ignora i file di configurazione di IntelliJ IDEA
+*.iml
+
+# Ignora le cartelle di compilazione Java
+*.class
+
 # Ignora la cartella out/
 out/
 
-# Ignora i file di configurazione di IntelliJ IDEA
-*.iml
+# Ignora la cartella target/
+target/
 
 # Ignora file di log
 *.log
@@ -14,5 +20,4 @@ out/
 *.docker
 Dockerfile
 
-# Ignora le cartelle di compilazione Java
-*.class
+.DS_Store

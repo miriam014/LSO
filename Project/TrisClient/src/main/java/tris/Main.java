@@ -1,4 +1,4 @@
-package java_tris;
+package tris;
 
 import java.io.*;
 import java.net.*;
@@ -12,7 +12,7 @@ public class Main {
         try (Socket socket = new Socket(SERVER_IP, SERVER_PORT); // usa try-with-resources per chiudere automaticamente il socket
              BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream())); // riceve dati dal server
              PrintWriter output = new PrintWriter(socket.getOutputStream(), true); // invia i dati al server
-             BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in))) { // legge input dell'utente da tastiera
+             BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in))) { // legge dell'utente da tastiera
 
             System.out.println("Connesso al server! Digita un messaggio exit per terminare:");
 
