@@ -1,0 +1,46 @@
+# === IDE e editor ===
+.idea/
+.vscode/
+*.iml
+
+# === macOS / Linux / Windows ===
+.DS_Store
+Thumbs.db
+
+# === Java / Maven ===
+target/
+out/
+*.class
+*.jar
+*.log
+*.fxml~
+.mvn/
+
+# === SceneBuilder / JavaFX ===
+*.fxml~
+
+# === C (file compilati) ===
+*.o
+*.out
+*.gch
+trisServer
+a.out
+core
+
+# === Backup / temporanei ===
+*~
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# === Docker ===
+*.docker
+Dockerfile
+docker-compose.override.yml
+
+# === Node / NPM (se presenti) ===
+node_modules/
+
+# === Output di sistema ===
+*.lock
