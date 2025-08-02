@@ -1,0 +1,29 @@
+# Configurazione IDE
+.idea/
+*.iml
+.vscode/
+
+# Build Java
+target/
+out/
+*.class
+
+
+# Build C
+*.o
+trisServer
+
+# Maven
+log/
+.mvn/
+
+# Docker
+*.docker
+Dockerfile
+docker-compose.override.yml
+
+# Sistema operativo (macOS)
+.DS_Store
+
+# Altri
+*.log
