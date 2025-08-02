@@ -7,7 +7,7 @@ public class Main {
     public static void main(String[] args) {
 
         final int SERVER_PORT = 5001; // porta per connettersi al server
-        final String SERVER_IP = "127.0.0.1"; // il nome del servizio/server nel docker-compose
+        final String SERVER_IP = "server"; // il nome del servizio/server nel docker-compose
 
         try (Socket socket = new Socket(SERVER_IP, SERVER_PORT); // usa try-with-resources per chiudere automaticamente il socket
              BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream())); // riceve dati dal server
