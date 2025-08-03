@@ -109,3 +109,16 @@ Permette di usare **flag avanzati**, ad esempio:
 
  Come `write()`, ma specifica per socket
 - Anche qui puoi usare flag (es. `MSG_NOSIGNAL` per non ricevere SIGPIPE su disconnessione)
+
+### Messaggi 
+ **Client (giocatore)** manda:
+- `crea_partita` → per creare una nuova partita
+- `accetta_partecipazione` → per accettare un giocatore nella partita
+- `rifiuta_partecipazione` → per rifiutarlo
+- `inizia_nuova` → per iniziare una nuova partita dopo una terminata
+
+ **Server** risponde o invia:
+- `partecipa_partita` → ti propone un nuovo giocatore che vuole unirsi
+- `vittoria` / `sconfitta` / `pareggio` → fine partita    
+- `aggiorna_stato` (tipo `"è il tuo turno"`, `"mossa avversaria"`, ecc.)
+- `errore` → messaggi di errore vari

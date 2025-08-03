@@ -1,24 +1,24 @@
 {
   "main": {
-    "id": "e80e82217abee377",
+    "id": "e2c458c50c39222e",
     "type": "split",
     "children": [
       {
-        "id": "3cabee211cfc812a",
+        "id": "296f0296a5b5b40d",
         "type": "tabs",
         "children": [
           {
-            "id": "863b409dd238a900",
+            "id": "4292d63f0d983226",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Appunti LSO.md",
+                "file": "README.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Appunti LSO"
+              "title": "README"
             }
           }
         ]
@@ -27,15 +27,15 @@
     "direction": "vertical"
   },
   "left": {
-    "id": "cb6b4225f72383f0",
+    "id": "17dd283e5ec1f172",
     "type": "split",
     "children": [
       {
-        "id": "8f1178d75a16a073",
+        "id": "327e23847de574d1",
         "type": "tabs",
         "children": [
           {
-            "id": "034c2f0ff1667d48",
+            "id": "83c4bcb372964bd0",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
@@ -48,7 +48,7 @@
             }
           },
           {
-            "id": "d509f107442d97fd",
+            "id": "16e6248ec6fe9654",
             "type": "leaf",
             "state": {
               "type": "search",
@@ -65,7 +65,7 @@
             }
           },
           {
-            "id": "8dcc237351866414",
+            "id": "1cf1dbdeb41a176d",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
@@ -78,23 +78,24 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
-    "id": "ae7f8b6b7c74f8d4",
+    "id": "a741e1ca418cd3b6",
     "type": "split",
     "children": [
       {
-        "id": "cff32ab8e37f9dde",
+        "id": "a7a6331ba7b951ef",
         "type": "tabs",
         "children": [
           {
-            "id": "b5f8fb947370b5e0",
+            "id": "9d7028285914c8f8",
             "type": "leaf",
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Appunti LSO.md",
+                "file": "README.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,25 +105,25 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Riferimenti a Appunti LSO"
+              "title": "Riferimenti a README"
             }
           },
           {
-            "id": "9f7da80909cf7a21",
+            "id": "f40f4a7353fe1a78",
             "type": "leaf",
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Appunti LSO.md",
+                "file": "README.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Collegamenti in uscita da Appunti LSO"
+              "title": "Collegamenti in uscita da README"
             }
           },
           {
-            "id": "5d808869ee21bc35",
+            "id": "4a0a5eed76e8d788",
             "type": "leaf",
             "state": {
               "type": "tag",
@@ -137,18 +138,18 @@
             }
           },
           {
-            "id": "ca178fd09069f623",
+            "id": "5e603352b98dce8c",
             "type": "leaf",
             "state": {
               "type": "outline",
               "state": {
-                "file": "Appunti LSO.md",
+                "file": "README.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Struttura di Appunti LSO"
+              "title": "Struttura di README"
             }
           }
         ]
@@ -168,8 +169,6 @@
       "command-palette:Apri riquadro comandi": false
     }
   },
-  "active": "863b409dd238a900",
-  "lastOpenFiles": [
-    "Appunti LSO.md"
-  ]
+  "active": "4292d63f0d983226",
+  "lastOpenFiles": []
 }

@@ -2,45 +2,72 @@ package tris;
 
 import java.io.*;
 import java.net.*;
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
-public class Main {
+public class Main extends Application {
+
+    private static Stage primaryStage;
+    private static Socket socket;
+    private static BufferedReader input;
+    private static PrintWriter output;
+
+    // Avvio dell'applicazione JavaFX
     public static void main(String[] args) {
+        launch(args);
+    }
 
+    @Override
+    public void start(Stage stage) throws IOException {
+        primaryStage = stage;
+        connectToServer();
+        setRoot("home.fxml");
+    }
+
+    public static void setRoot(String fxml) throws IOException {
+        Parent root = FXMLLoader.load(Main.class.getResource("/interfaccia/" + fxml));
+        primaryStage.setScene(new Scene(root));
+        primaryStage.setTitle("Tris");
+        primaryStage.show();
+    }
+
+
+    // Connessione al server (una volta sola all'avvio)
+    public static void connectToServer() throws IOException {
         final int SERVER_PORT = 5001; // porta per connettersi al server
-        final String SERVER_IP = "server"; // il nome del servizio/server nel docker-compose
+        final String SERVER_IP = "localhost"; // il nome del servizio/server nel docker-compose
 
-        try (Socket socket = new Socket(SERVER_IP, SERVER_PORT); // usa try-with-resources per chiudere automaticamente il socket
-             BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream())); // riceve dati dal server
-             PrintWriter output = new PrintWriter(socket.getOutputStream(), true); // invia i dati al server
-             BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in))) { // legge dell'utente da tastiera
+        socket = new Socket(SERVER_IP, SERVER_PORT);
+        input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        output = new PrintWriter(socket.getOutputStream(), true);
 
-            System.out.println("Connesso al server! Digita un messaggio exit per terminare:");
+        System.out.println("Connesso al server!");
+    }
 
-            // loop per inviare e ricevere messaggi
-            while (true) {
-                System.out.print("> ");
-                String userMessage = stdIn.readLine();
+    // Metodo per inviare messaggi al server
+    public static void sendToServer(String messaggio) {
+        if (output != null) {
+            output.println(messaggio);
+            System.out.println("[DEBUG] JSON inviato: " + messaggio);
+        }
+    }
 
-                if (userMessage == null || userMessage.equals("exit")) {
-                    output.println("exit");
-                    break; // se l'utente digita "exit", chiude la connessione
-                }
+    // Metodo per ricevere messaggi dal server
+    public static String receiveFromServer() throws IOException {
+        if (input != null) {
+            return input.readLine();
+        }
+        return null;
+    }
 
-                output.println(userMessage); // invia il messaggio al server
-                System.out.println("[DEBUG] Messaggio inviato al server: " + userMessage);  // Messaggio inviato
-
-                // Legge la risposta dal server e la stampa
-                String serverResponse = input.readLine();
-                if (serverResponse != null) {
-                    System.out.println("Server risponde: " + serverResponse); // Stampa la risposta del server
-                } else {
-                    System.out.println("Errore: Il server ha chiuso la connessione.");
-                    break;
-                }
-            }
-
-        } catch (IOException e) {
-            System.out.println("Errore: " + e.getMessage());
+    // Chiudi la connessione (facoltativo)
+    public static void closeConnection() throws IOException {
+        if (socket != null && !socket.isClosed()) {
+            socket.close();
+            System.out.println("Connessione chiusa.");
         }
     }
 }
