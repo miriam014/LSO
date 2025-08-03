@@ -13,7 +13,6 @@ out/
 *.class
 *.jar
 *.log
-*.fxml~
 .mvn/
 
 # === SceneBuilder / JavaFX ===
@@ -23,7 +22,6 @@ out/
 *.o
 *.out
 *.gch
-trisServer
 a.out
 core
 
@@ -33,11 +31,6 @@ core
 *.bak
 *.swp
 *.swo
-
-# === Docker ===
-*.docker
-Dockerfile
-docker-compose.override.yml
 
 # === Node / NPM (se presenti) ===
 node_modules/
