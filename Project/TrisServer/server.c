@@ -61,10 +61,10 @@ void *handle_client(void *arg) {
         fflush(stdout); // forza la stampa immediata nel terminale del container
 
 
-        // strncmp verifica che l'inizio della mia stringa sia "exit"
-        if (strncmp(buffer, "exit", 4) == 0) {
-            close(cSocket);
-            return NULL;
+        // se JSON con "tipo", smista al router
+        if (strstr(buffer, "\"tipo\"") != NULL) {
+            handle_command(cSocket, buffer);
+            continue;
         }
 
         const char *response = "Messaggio ricevuto dal server\n";

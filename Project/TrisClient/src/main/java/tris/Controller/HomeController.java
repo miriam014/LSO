@@ -4,11 +4,14 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import tris.Main;
 import tris.MessaggiBuilder;
+import tris.NetClient;
 import tris.Sessione;
 
 public class HomeController {
     @FXML private TextField InsertName;
-    @FXML private Button createNew;
+    @FXML private Button createNewPartita;
+
+    private NetClient netClient;
 
     @FXML
     private void initialize() {
@@ -17,7 +20,7 @@ public class HomeController {
 
     @FXML
     private void CreateNew() {
-        String nome = InsertName.getText();
+        String nome = InsertName.getText().trim();
         if (nome.isEmpty()) {
             System.out.println("Inserisci un nome valido.");
             return;
@@ -27,7 +30,7 @@ public class HomeController {
         // Esegui la parte socket su un thread SEPARATO
         new Thread(() -> {
             try {
-                String messaggioJSON = MessaggiBuilder.costruisci("crea");
+                String messaggioJSON = MessaggiBuilder.creaPartita(nome);
                 Main.sendToServer(messaggioJSON);
 
                 String risposta = Main.receiveFromServer();

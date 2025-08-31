@@ -1,39 +1,40 @@
 package tris;
 
-import com.google.gson.JsonObject;
-
 public class MessaggiBuilder {
 
-    public static String costruisci(String comando) {
-        JsonObject json = new JsonObject();
+    private static String qs(String s){
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
 
-        switch (comando.toLowerCase()) {
+    public static String ciao(String utente){
+        return "{\"tipo\":\"CIAO\",\"utente\":\""+qs(utente)+"\"}";
+    }
 
-            case "crea":
-                json.addProperty("type", "crea_partita");
-                json.addProperty("giocatore", Sessione.getUsername());
-                break;
+    public static String creaPartita(String utente, String nome){
+        return "{\"tipo\":\"CREA_PARTITA\",\"utente\":\""+qs(utente)+"\",\"nome\":\""+qs(nome)+"\"}";
+    }
 
-            case "accetta":
-                json.addProperty("type", "accetta_partecipazione");
-                json.addProperty("id_partita", Sessione.getIdPartita());
-                break;
+    public static String listaPartite(){
+        return "{\"tipo\":\"LISTA_PARTITE\"}";
+    }
 
-            case "rifiuta":
-                json.addProperty("type", "rifiuta_partecipazione");
-                json.addProperty("id_partita", Sessione.getIdPartita());
-                break;
+    public static String entraRichiesta(String utente, int idPartita){
+        return "{\"tipo\":\"ENTRA_RICHIESTA\",\"utente\":\""+qs(utente)+"\",\"id_partita\":"+idPartita+"}";
+    }
 
-            case "inizia_nuova":
-                json.addProperty("type", "inizia_nuova");
-                json.addProperty("id_partita", Sessione.getIdPartita());
-                json.addProperty("giocatore", Sessione.getUsername());
-                break;
+    // NB: booleans come STRINGHE ("true"/"false") per il tuo router attuale
+    public static String entraRisposta(String owner, int idPartita, String ospite, boolean accetta){
+        return "{\"tipo\":\"ENTRA_RISPOSTA\",\"utente\":\""+qs(owner)+"\",\"id_partita\":"+idPartita+
+                ",\"accetta\":\""+(accetta?"true":"false")+"\",\"ospite\":\""+qs(ospite)+"\"}";
+    }
 
-            default:
-                return null;
-        }
+    public static String mossa(String utente, int idPartita, int cella){
+        return "{\"tipo\":\"MOSSA\",\"utente\":\""+qs(utente)+"\",\"id_partita\":"+idPartita+",\"cella\":"+cella+"}";
+    }
 
-        return json.toString();
+    public static String rematch(String utente, int idPartita, boolean voglio){
+        return "{\"tipo\":\"REMATCH\",\"utente\":\""+qs(utente)+"\",\"id_partita\":"+idPartita+
+                ",\"voglio\":\""+(voglio? "true":"false")+"\"}";
     }
 }

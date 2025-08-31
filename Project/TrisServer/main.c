@@ -10,7 +10,7 @@ int main() {
    struct sockaddr_in client_addr;
    socklen_t addr_size; 
    pthread_t threads[MAX_CLIENTS]; //salvo gli ID dei thread
-   int client_count = 0; //contatore dei client connessi
+   int client_count = 0; 
 
    printf("clients address: %p\n", clients);  
    fflush(stdout);
@@ -24,7 +24,7 @@ int main() {
          exit(1);
       }
 
-      printf("client_count: %d\n", client_count);
+      printf("client_count: %d\n", client_count+1);
       printf("nuovo giocatore connesso! \n");
       fflush(stdout);
 
