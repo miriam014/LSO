@@ -77,6 +77,8 @@ char esito_scacchiera(const char b[10]){
 
 /* == Comandi == */
 void cmd_crea_partita(int sock, const char *utente){
+    printf("DEBUG: cmd_crea_partita invoked sock=%d utente=[%s]\n", sock, utente);
+    fflush(stdout);
     pthread_mutex_lock(&g_lock);
     Partita *p=NULL;
     for (int i=0; i<MAX_PARTITE; i++) {
@@ -122,10 +124,10 @@ void cmd_lista_partite(int sock){
                  g_partite[i].ospite[0]?g_partite[i].ospite:"-",
                  g_partite[i].nome);
         strcat(buf,item);
+        }
     }
     pthread_mutex_unlock(&g_lock);
     send_line(sock, buf);
-}
 }
 
 // un utente richiede di entrare in una partita in attesa di un avversario

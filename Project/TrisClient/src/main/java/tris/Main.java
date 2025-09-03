@@ -1,7 +1,5 @@
 package tris;
 
-import java.io.*;
-import java.net.*;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -11,11 +9,7 @@ import javafx.stage.Stage;
 public class Main extends Application {
 
     private static Stage primaryStage;
-    private static Socket socket;
-    private static BufferedReader input;
-    private static PrintWriter output;
-
-    public static Thread serverThread; // Thread per la comunicazione con il server
+    private static NetClient netClient;
 
     // Avvio dell'applicazione JavaFX
     public static void main(String[] args) {
@@ -23,62 +17,30 @@ public class Main extends Application {
     }
 
     @Override
-    public void start(Stage stage) throws IOException {
+    public void start(Stage stage) throws Exception {
         primaryStage = stage;
-        connectToServer();
+        netClient = new NetClient("localhost", 5001);
+        netClient.start();
         setRoot("home.fxml");
     }
 
     @Override
     public void stop() throws Exception {
         super.stop();
-        closeConnection();
-        if (serverThread != null) {
-            serverThread.interrupt();
+        if (netClient != null) {
+            netClient.close();
         }
     }
 
-    public static void setRoot(String fxml) throws IOException {
+    public static void setRoot(String fxml) throws Exception {
         Parent root = FXMLLoader.load(Main.class.getResource("/interfaccia/" + fxml));
         primaryStage.setScene(new Scene(root));
         primaryStage.setTitle("Tris");
         primaryStage.show();
     }
 
-
-    // Connessione al server (una volta sola all'avvio)
-    public static void connectToServer() throws IOException {
-        final int SERVER_PORT = 5001; // porta per connettersi al server
-        final String SERVER_IP = "localhost"; // il nome del servizio/server nel docker-compose
-
-        socket = new Socket(SERVER_IP, SERVER_PORT);
-        input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        output = new PrintWriter(socket.getOutputStream(), true);
-
-        System.out.println("Connesso al server!");
-    }
-
-    // Metodo per inviare messaggi al server
-    public static void sendToServer(String messaggio) {
-        if (output != null) {
-            output.println(messaggio);
-        }
-    }
-
-    // Metodo per ricevere messaggi dal server
-    public static String receiveFromServer() throws IOException {
-        if (input != null) {
-            return input.readLine();
-        }
-        return null;
-    }
-
-    // Chiudi la connessione (facoltativo)
-    public static void closeConnection() throws IOException {
-        if (socket != null && !socket.isClosed()) {
-            socket.close();
-            System.out.println("Connessione chiusa.");
-        }
+    public static NetClient getNetClient() {
+        return netClient;
     }
 }
 

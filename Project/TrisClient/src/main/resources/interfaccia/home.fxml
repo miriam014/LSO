@@ -8,6 +8,7 @@
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.effect.Blend?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
@@ -53,20 +54,24 @@
                   </Button>
                   <StackPane prefHeight="324.0" prefWidth="504.0">
                      <children>
-
-                        <!-- Popup centrale -->
-                        <VBox fx:id="popupAttesa" alignment="CENTER" spacing="10" style="-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 20px;" visible="false" StackPane.alignment="CENTER">
-                           <Label fx:id="popupLabel" style="-fx-text-fill: white; -fx-font-size: 16px;" text="In attesa di un avversario...">
-                              <VBox.margin>
-                                 <Insets bottom="210.0" />
-                              </VBox.margin></Label>
-                        </VBox>
-                        <TableView nodeOrientation="LEFT_TO_RIGHT" prefHeight="306.0" prefWidth="504.0" stylesheets="@stile.css">
+                        <TableView nodeOrientation="LEFT_TO_RIGHT" prefHeight="183.0" prefWidth="410.0" stylesheets="@stile.css">
                            <columns>
                               <TableColumn prefWidth="423.0" text="Partita" />
                               <TableColumn minWidth="0.0" prefWidth="79.0" text="stato" />
                            </columns>
                         </TableView>
+
+                        <!-- Popup centrale -->
+                        <VBox fx:id="popupAttesa" alignment="CENTER" focusTraversable="true" prefHeight="213.0" prefWidth="504.0" spacing="10" style="-fx-padding: 20px; -fx-background-color: white;" visible="false" StackPane.alignment="CENTER">
+                           <Label fx:id="popupLabel" alignment="CENTER" contentDisplay="CENTER" prefHeight="24.0" prefWidth="346.0" style="-fx-font-size: 16px; -fx-background-color: #F9F5F4;" text="In attesa di un avversario..." textAlignment="CENTER">
+                              <VBox.margin>
+                                 <Insets bottom="210.0" />
+                              </VBox.margin>
+                           </Label>
+                           <effect>
+                              <Blend />
+                           </effect>
+                        </VBox>
                      </children>
                   </StackPane>
                </children>
