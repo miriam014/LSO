@@ -15,6 +15,8 @@ public class Main extends Application {
     private static BufferedReader input;
     private static PrintWriter output;
 
+    public static Thread serverThread; // Thread per la comunicazione con il server
+
     // Avvio dell'applicazione JavaFX
     public static void main(String[] args) {
         launch(args);
@@ -25,6 +27,15 @@ public class Main extends Application {
         primaryStage = stage;
         connectToServer();
         setRoot("home.fxml");
+    }
+
+    @Override
+    public void stop() throws Exception {
+        super.stop();
+        closeConnection();
+        if (serverThread != null) {
+            serverThread.interrupt();
+        }
     }
 
     public static void setRoot(String fxml) throws IOException {
@@ -51,7 +62,6 @@ public class Main extends Application {
     public static void sendToServer(String messaggio) {
         if (output != null) {
             output.println(messaggio);
-            System.out.println("[DEBUG] JSON inviato: " + messaggio);
         }
     }
 

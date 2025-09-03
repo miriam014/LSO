@@ -28,7 +28,9 @@ public class NetClient {
                     if (onMessage != null) onMessage.accept(line);
                 }
             } catch (IOException e) {
-                if (onMessage != null) onMessage.accept("{\"tipo\":\"ERROR\",\"msg\":\"" + e.getMessage() + "\"}");
+                if (onMessage != null) {
+                    onMessage.accept("ERROR msg=" + e.getMessage());
+                }
             }
         }, "NetClient-Reader");
         readerThread.setDaemon(true);
@@ -44,6 +46,8 @@ public class NetClient {
     }
 
     public void close() {
-        try { socket.close(); } catch (IOException ignored) {}
+        try {
+            socket.close();
+        } catch (IOException ignored) {}
     }
 }

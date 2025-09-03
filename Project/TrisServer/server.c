@@ -1,6 +1,8 @@
 #include "server.h"
 
 int clients[MAX_CLIENTS];
+int client_count = 0;
+pthread_mutex_t client_count_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // Funzione per configurare il server (apre la socket e mette il server in ascolto)
 int setup_server() {
@@ -43,17 +45,29 @@ int setup_server() {
 void *handle_client(void *arg) {
     int cSocket = *(int *)arg; //prendo il socket passato come argomento e lo assegno ad una variabile
     free(arg); //libero la memoria allocata per il nuovo socket
-    
-    char buffer[1024] = {0}; //buffer per la ricezione dei messaggi
+    char buffer[1024]; //buffer per la ricezione dei messaggi
 
     while (1) {
         memset(buffer, 0, sizeof(buffer)); //pulisco il buffer
+        int byte_received = recv(cSocket, buffer, sizeof(buffer)-1, 0); //ricevo il messaggio
+        
+        if (byte_received <= 0) { //client chiuso o un errore
+            perror("Client disconnesso");
+            fflush(stdout);
 
-        int byte_received = recv(cSocket, buffer, sizeof(buffer), 0); //ricevo il messaggio
-        if (byte_received <= 0) { //se il messaggio è vuoto o c'è un errore
-            perror("Un client disconnesso\n");
-            close(cSocket); 
-            return NULL; 
+            pthread_mutex_lock(&client_count_lock);
+            // Rimuove il client dall'array
+            for (int i = 0; i < client_count; i++) {
+                if (clients[i] == cSocket) {
+                    clients[i] = clients[client_count - 1];
+                    client_count--;
+                    break;
+                }
+            }
+            pthread_mutex_unlock(&client_count_lock);
+
+            close(cSocket);
+            return NULL;
         }
 
         buffer[byte_received] = '\0';  // assicurati che sia una stringa terminata
@@ -61,17 +75,30 @@ void *handle_client(void *arg) {
         fflush(stdout); // forza la stampa immediata nel terminale del container
 
 
-        // se JSON con "tipo", smista al router
-        if (strstr(buffer, "\"tipo\"") != NULL) {
-            handle_command(cSocket, buffer);
-            continue;
-        }
+        // --- PARSING TESTUALE ---
+        char cmd[32], utente[32], nome[64], ospite[32];
+        int id=0, cella=-1, accetta=0, voglio=0;
 
-        const char *response = "Messaggio ricevuto dal server\n";
-        if (write(cSocket, response, strlen(response)) < 0) {
-            perror("Errore nell'invio della risposta");
-            close(cSocket);
-            return NULL;
+        // sscanf legge dal buffer secondo il formato e %31s legge una sftringa lunga fino a 31 carateri e la mette poi nella variabile utente
+        if (sscanf(buffer, "CREA_PARTITA %31s", utente) == 1) {
+            cmd_crea_partita(cSocket, utente);
+        }
+        else if (strncmp(buffer, "LISTA_PARTITE", 13) == 0) {
+            cmd_lista_partite(cSocket);
+        }
+        else if (sscanf(buffer, "ENTRA_RICHIESTA %31s %d", utente, &id) == 2) {
+            cmd_entra_richiesta(cSocket, utente, id);
+        }
+        else if (sscanf(buffer, "ENTRA_RISPOSTA %31s %d %d %31s", utente, &id, &accetta, ospite) == 4) {
+            cmd_entra_risposta(cSocket, utente, id, accetta, ospite);
+        }
+        else if (sscanf(buffer, "MOSSA %31s %d %d", utente, &id, &cella) == 3) {
+            cmd_mossa(cSocket, utente, id, cella);
+        }
+        else if (sscanf(buffer, "REMATCH %31s %d %d", utente, &id, &voglio) == 3) {
+            cmd_rematch(cSocket, utente, id, voglio);
+        } else {
+            send_line(cSocket, "ERRORE comando non riconosciuto");
         }
     }
 }

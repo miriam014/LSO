@@ -2,36 +2,98 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SplitMenuButton?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="473.0" prefWidth="438.0" style="-fx-background-color: #781F19;" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tris.Controller.HomeController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="520.0" prefWidth="530.0" style="-fx-background-color: #781F19;" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tris.Controller.HomeController">
    <children>
       <BorderPane layoutX="13.0" layoutY="173.0" prefHeight="447.0" prefWidth="411.0" style="-fx-background-color: white;" AnchorPane.bottomAnchor="13.0" AnchorPane.leftAnchor="13.0" AnchorPane.rightAnchor="13.0" AnchorPane.topAnchor="13.0">
          <center>
-            <VBox prefHeight="317.0" prefWidth="412.0" BorderPane.alignment="CENTER">
+            <VBox prefHeight="146.0" prefWidth="504.0" BorderPane.alignment="CENTER">
                <children>
-                  <TextField fx:id="InsertName" alignment="CENTER" promptText="Inserisci Username">
+                  <HBox nodeOrientation="LEFT_TO_RIGHT" prefHeight="33.0" prefWidth="294.0">
+                     <children>
+                        <SplitMenuButton alignment="CENTER" contentDisplay="CENTER" graphicTextGap="5.0" mnemonicParsing="false" popupSide="LEFT" prefHeight="27.0" prefWidth="114.0" stylesheets="@stile.css" text="inviti partite" textFill="WHITE">
+                          <items>
+                            <MenuItem mnemonicParsing="false" text="Action 1" />
+                            <MenuItem mnemonicParsing="false" text="Action 2" />
+                          </items>
+                        </SplitMenuButton>
+                     </children>
+                     <opaqueInsets>
+                        <Insets />
+                     </opaqueInsets>
+                     <padding>
+                        <Insets left="13.0" />
+                     </padding>
+                  </HBox>
+                  <TextField fx:id="InsertName" alignment="CENTER" prefHeight="26.0" prefWidth="353.0" promptText="Inserisci Username">
                      <VBox.margin>
                         <Insets bottom="20.0" left="50.0" right="50.0" top="20.0" />
                      </VBox.margin>
                   </TextField>
-                  <Button fx:id="createNew" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#CreateNew" prefHeight="29.0" prefWidth="320.0" text="Inizia nuova partita">
+                  <Button fx:id="createNew" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#CreateNew" prefHeight="29.0" prefWidth="405.0" style="-fx-background-color: #9C3B35; -fx-text-fill: white;" text="Inizia nuova partita">
                      <VBox.margin>
-                        <Insets left="50.0" right="50.0" />
+                        <Insets bottom="20.0" left="50.0" right="50.0" />
                      </VBox.margin>
                      <padding>
                         <Insets bottom="6.0" left="50.0" right="50.0" top="6.0" />
                      </padding>
                   </Button>
+                  <StackPane prefHeight="324.0" prefWidth="504.0">
+                     <children>
+
+                        <!-- Popup centrale -->
+                        <VBox fx:id="popupAttesa" alignment="CENTER" spacing="10" style="-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 20px;" visible="false" StackPane.alignment="CENTER">
+                           <Label fx:id="popupLabel" style="-fx-text-fill: white; -fx-font-size: 16px;" text="In attesa di un avversario...">
+                              <VBox.margin>
+                                 <Insets bottom="210.0" />
+                              </VBox.margin></Label>
+                        </VBox>
+                        <TableView nodeOrientation="LEFT_TO_RIGHT" prefHeight="306.0" prefWidth="504.0" stylesheets="@stile.css">
+                           <columns>
+                              <TableColumn prefWidth="423.0" text="Partita" />
+                              <TableColumn minWidth="0.0" prefWidth="79.0" text="stato" />
+                           </columns>
+                        </TableView>
+                     </children>
+                  </StackPane>
                </children>
+               <BorderPane.margin>
+                  <Insets />
+               </BorderPane.margin>
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+               <padding>
+                  <Insets bottom="15.0" />
+               </padding>
             </VBox>
          </center>
          <top>
-            <TextArea prefHeight="127.0" prefWidth="412.0" text="L'obiettivo è allineare tre simboli uguali (orizzontalmente, verticalmente o diagonalmente) per vincere. Se la griglia si riempie senza che nessuno dei due giocatori riesca a formare un tris, si ha un pareggio" BorderPane.alignment="CENTER" />
+            <Pane prefHeight="32.0" prefWidth="504.0" style="-fx-background-color: #781F19;" BorderPane.alignment="CENTER">
+               <children>
+                  <Label layoutX="14.0" layoutY="-1.0" prefHeight="31.0" prefWidth="133.0" style="-fx-text-fill: white;" text="Tic-Tac-Toe">
+                     <font>
+                        <Font size="24.0" />
+                     </font>
+                  </Label>
+               </children>
+               <BorderPane.margin>
+                  <Insets bottom="10.0" />
+               </BorderPane.margin>
+            </Pane>
          </top>
       </BorderPane>
    </children>

@@ -1,0 +1,97 @@
+/* ---------- Stile della tabella ---------- */
+/* Stile generale della TableView */
+.table-view {
+    -fx-border-width: 0px 0px 2px 0px;    /* Spessore del bordo */
+}
+
+/* Stile delle righe */
+.table-row-cell {
+    -fx-background-color: transparent; /* Sfondo trasparente di base */
+    -fx-border-width: 1px 0px; /* Bordi solo sopra e sotto */
+}
+
+.table-row-cell:even {
+    -fx-background-color: #f4f4f4; /* Colore grigio */
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #ffffff; /* Colore grigio chiaro */
+}
+
+
+/* -------- Stile delle celle selezionate ---------- */
+.table-row-cell:selected {
+    -fx-background-color: #d3d3d3; /* Sfondo della riga selezionata */
+    -fx-text-fill: black;          /* Colore del testo */
+    -fx-border-color: transparent; /* Nessun bordo visibile */
+    -fx-border-width: 0;           /* Nessun bordo */
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-border-color: transparent; /* Nessun bordo visibile */
+    -fx-border-width: 0px;     /* Nessun bordo visibile */
+}
+
+.table-row-cell:selected .text {
+    -fx-fill: black; /* Forza il colore del testo in nero */
+}
+
+.table-view .column-header {
+    -fx-text-fill: black;
+    -fx-font-weight: bold;         /* Testo in grassetto */
+    -fx-alignment: CENTER;         /* Testo centrato */
+    -fx-border-width: 0px 0px 2px 0px; /* Bordo sotto la riga dei titoli */
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #d3d3d3; /* Grigio piÃ¹ scuro per l'hover */
+}
+
+/* Rimuove il bordo che puÃ² apparire intorno alla tabella */
+.table-view:focused {
+    -fx-border-color: #d3d3d3; /* Nessun bordo per la tabella quando in focus */
+    -fx-padding: 0;                /* Nessun padding visibile */
+}
+
+
+/* ---------- Stile delle celle ---------- */
+
+.split-pane {
+    -fx-background-color: transparent; /* Rende trasparente lo sfondo */
+    -fx-border-color: transparent;    /* Nasconde i bordi */
+}
+
+.split-pane > .split-pane-divider {
+    -fx-background-color: transparent; /* Rende trasparente il divider */
+}
+
+/* SplitMenuButton - container generale */
+.split-menu-button {
+    -fx-background-color: transparent; /* lasciamo trasparente il contenitore */
+}
+
+/* Parte centrale con il testo */
+.split-menu-button > .label {
+    -fx-background-color: #9C3B35;
+    -fx-text-fill: white;
+    -fx-background-radius: 5 0 0 5; /* angoli arrotondati solo a sinistra */
+    -fx-padding: 5px 10px;
+}
+
+/* Parte con la freccina */
+.split-menu-button > .arrow-button {
+    -fx-background-color:  #9C3B35;
+    -fx-background-radius: 0 5px 5px 0; /* angoli arrotondati solo a destra */
+}
+
+/* Hover - schiarisce entrambe le parti */
+.split-menu-button:hover > .label,
+.split-menu-button:hover > .arrow-button {
+    -fx-background-color: #B85B55;
+}
+
+/* Pressed - scurisce entrambe le parti */
+.split-menu-button:pressed > .label,
+.split-menu-button:pressed > .arrow-button {
+    -fx-background-color: #7A2C27;
+}

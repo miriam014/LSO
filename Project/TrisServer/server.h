@@ -16,7 +16,9 @@
 #define MAX_PARTITE 50 
 
 extern int clients[MAX_CLIENTS]; // Dichiarazione esterna dell'array dei client così può essere usato in altri file
-    
+extern int client_count; // Dichiarazione esterna del contatore dei client
+extern pthread_mutex_t client_count_lock; // Mutex per proteggere l'accesso a client_count
+
 // Stati di gioco
 typedef enum { ST_NUOVA=0, ST_IN_ATTESA=1, ST_IN_CORSO=2, ST_TERMINATA=3 } StatoPartita;
 
@@ -40,21 +42,17 @@ typedef struct {
     int         pronto_ospite;
 } Partita;
 
-void *handle_client(void *arg);  // Dichiarazione della funzione
 int setup_server();              // Funzione per configurare il server (apre la soket e mette il server in ascolto)
+void *handle_client(void *arg);  // Dichiarazione della funzione
 
 
-
-// Framing messaggi (JSON-per-riga)
+// Comunicazione
+//recive line non ci serve perchè utilizziamo direttamente recv 
+//invece abbiamo scritto send line invece di utilizzare direttemente write così da poter leggere i messaggi separati riga per riga senza doverli gestire con strlen()
 ssize_t send_line(int sock, const char *s);
-ssize_t receive_line(int sock, char *buf, size_t cap);
 
-// Router comandi
-void handle_command(int sock, const char *line);
-
-// Handler richiesti dalla traccia
-void cmd_ciao(int sock, const char *utente);
-void cmd_crea_partita(int sock, const char *utente, const char *nome);
+// Comandi
+void cmd_crea_partita(int sock, const char *utente);
 void cmd_lista_partite(int sock);
 void cmd_entra_richiesta(int sock, const char *utente, int id_partita);
 void cmd_entra_risposta(int sock, const char *ownerUser, int id_partita, int accetta, const char *ospite);
