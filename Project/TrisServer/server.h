@@ -22,7 +22,7 @@ extern pthread_mutex_t client_count_lock; // Mutex per proteggere l'accesso a cl
 // Stati di gioco
 typedef enum { ST_NUOVA=0, ST_IN_ATTESA=1, ST_IN_CORSO=2, ST_TERMINATA=3 } StatoPartita;
 
-// Strutture runtime 
+// Strutture runtime  UTENTE
 typedef struct {
     int  sock;
     char username[32];
@@ -30,11 +30,13 @@ typedef struct {
     int  attivo;
 } Utente;
 
+// Strutture runtime  PARTITA
 typedef struct {
     int         id;
-    char        nome[32];
     char        proprietario[32];
     char        ospite[32];
+    int         proprietario_sock;
+    int         ospite_sock;
     StatoPartita stato;
     char        scacchiera[10];  // 9 celle + '\0', '.' = vuota
     char        turno[32];       // username di chi deve giocare

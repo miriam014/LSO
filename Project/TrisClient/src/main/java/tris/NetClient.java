@@ -21,8 +21,18 @@ public class NetClient {
         readerThread = new Thread(() -> {
             try {
                 String line;
+                StringBuilder buffer = new StringBuilder();
                 while ((line = in.readLine()) != null) {
-                    if (onMessage != null) onMessage.accept(line);
+                    if (line.isEmpty()) {
+                        if (buffer.length() > 0) {
+                            if (onMessage != null) {
+                                onMessage.accept(buffer.toString().trim());
+                            }
+                            buffer.setLength(0);
+                        }
+                    } else {
+                        buffer.append(line).append("\n");
+                    }
                 }
             } catch (IOException e) {
                 if (onMessage != null) {

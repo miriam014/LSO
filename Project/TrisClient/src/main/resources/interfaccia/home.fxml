@@ -3,8 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.MenuItem?>
-<?import javafx.scene.control.SplitMenuButton?>
+<?import javafx.scene.control.MenuButton?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
@@ -23,14 +22,10 @@
          <center>
             <VBox prefHeight="146.0" prefWidth="504.0" BorderPane.alignment="CENTER">
                <children>
-                  <HBox nodeOrientation="LEFT_TO_RIGHT" prefHeight="33.0" prefWidth="294.0">
+                  <HBox focusTraversable="true" nodeOrientation="LEFT_TO_RIGHT" prefHeight="33.0" prefWidth="294.0">
                      <children>
-                        <SplitMenuButton alignment="CENTER" contentDisplay="CENTER" graphicTextGap="5.0" mnemonicParsing="false" popupSide="LEFT" prefHeight="27.0" prefWidth="114.0" stylesheets="@stile.css" text="inviti partite" textFill="WHITE">
-                          <items>
-                            <MenuItem mnemonicParsing="false" text="Action 1" />
-                            <MenuItem mnemonicParsing="false" text="Action 2" />
-                          </items>
-                        </SplitMenuButton>
+                        <MenuButton fx:id="partiteDisponibili" mnemonicParsing="false" text="inviti partite">
+                        </MenuButton>
                      </children>
                      <opaqueInsets>
                         <Insets />
@@ -44,34 +39,37 @@
                         <Insets bottom="20.0" left="50.0" right="50.0" top="20.0" />
                      </VBox.margin>
                   </TextField>
-                  <Button fx:id="createNew" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#CreateNew" prefHeight="29.0" prefWidth="405.0" style="-fx-background-color: #9C3B35; -fx-text-fill: white;" text="Inizia nuova partita">
+                  <Button fx:id="createNew" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#CreateNew" prefHeight="28.0" prefWidth="405.0" style="-fx-background-color: #9C3B35; -fx-text-fill: white;" text="Inizia nuova partita">
                      <VBox.margin>
-                        <Insets bottom="20.0" left="50.0" right="50.0" />
+                        <Insets bottom="50.0" left="50.0" right="50.0" />
                      </VBox.margin>
                      <padding>
-                        <Insets bottom="6.0" left="50.0" right="50.0" top="6.0" />
+                        <Insets bottom="5.0" left="50.0" right="50.0" top="6.0" />
                      </padding>
                   </Button>
-                  <StackPane prefHeight="324.0" prefWidth="504.0">
+                  <StackPane prefHeight="301.0" prefWidth="504.0">
                      <children>
-                        <TableView nodeOrientation="LEFT_TO_RIGHT" prefHeight="183.0" prefWidth="410.0" stylesheets="@stile.css">
-                           <columns>
-                              <TableColumn prefWidth="423.0" text="Partita" />
-                              <TableColumn minWidth="0.0" prefWidth="79.0" text="stato" />
-                           </columns>
-                        </TableView>
 
                         <!-- Popup centrale -->
-                        <VBox fx:id="popupAttesa" alignment="CENTER" focusTraversable="true" prefHeight="213.0" prefWidth="504.0" spacing="10" style="-fx-padding: 20px; -fx-background-color: white;" visible="false" StackPane.alignment="CENTER">
+                        <VBox fx:id="popupAttesa" alignment="CENTER" focusTraversable="true" prefHeight="321.0" prefWidth="504.0" spacing="10" style="-fx-padding: 20px; -fx-background-color: white;" visible="false" StackPane.alignment="CENTER">
                            <Label fx:id="popupLabel" alignment="CENTER" contentDisplay="CENTER" prefHeight="24.0" prefWidth="346.0" style="-fx-font-size: 16px; -fx-background-color: #F9F5F4;" text="In attesa di un avversario..." textAlignment="CENTER">
                               <VBox.margin>
-                                 <Insets bottom="210.0" />
+                                 <Insets bottom="210.0" top="-120.0" />
                               </VBox.margin>
+                              <padding>
+                                 <Insets bottom="10.0" />
+                              </padding>
                            </Label>
                            <effect>
                               <Blend />
                            </effect>
                         </VBox>
+                        <TableView nodeOrientation="LEFT_TO_RIGHT" prefHeight="308.0" prefWidth="504.0" stylesheets="@stile.css">
+                           <columns>
+                              <TableColumn minWidth="0.0" prefWidth="338.0" text="Avversario" />
+                              <TableColumn prefWidth="157.0" text="Stato" />
+                           </columns>
+                        </TableView>
                      </children>
                   </StackPane>
                </children>
@@ -82,7 +80,7 @@
                   <Insets />
                </opaqueInsets>
                <padding>
-                  <Insets bottom="15.0" />
+                  <Insets bottom="5.0" />
                </padding>
             </VBox>
          </center>

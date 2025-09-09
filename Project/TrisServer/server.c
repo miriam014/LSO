@@ -98,7 +98,7 @@ void *handle_client(void *arg) {
         else if (sscanf(buffer, "REMATCH %31s %d %d", utente, &id, &voglio) == 3) {
             cmd_rematch(cSocket, utente, id, voglio);
         } else {
-            send_line(cSocket, "ERRORE comando non riconosciuto");
+            send_msg(cSocket, "ERRORE comando non riconosciuto");
         }
     }
 }

@@ -161,6 +161,7 @@
   },
   "left-ribbon": {
     "hiddenItems": {
+      "bases:Create new base": false,
       "switcher:Apri selezione rapida": false,
       "graph:Apri vista grafo": false,
       "canvas:Crea nuova lavagna": false,
@@ -171,6 +172,7 @@
   },
   "active": "863b409dd238a900",
   "lastOpenFiles": [
+    "Senza nome.base",
     "Appunti LSO.md"
   ]
 }

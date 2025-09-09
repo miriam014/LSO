@@ -124,72 +124,11 @@ Permette di usare **flag avanzati**, ad esempio:
 - `errore` → messaggi di errore vari
 
 
-### non so cosa sia
-- **Limiti**: `MAX_CLIENTI`, `MAX_PARTITE` → array statici semplici.
-    
-- **Stati**: `StatoPartita { ST_NUOVA, ST_IN_ATTESA, ST_IN_CORSO, ST_TERMINATA }`.
-    
-- **Dati runtime**:
-    
-    - `Utente` (socket, username, partita corrente),
-        
-    - `Partita` (id, name, owner, guest, stato, scacchiera, turno).
-        
-- **Funzioni “perché servono”**:
-    
-    - `invia_riga` / `ricevi_riga`: su TCP i messaggi possono spezzarsi; con “JSON per riga” ogni messaggio termina a `\n`. Queste 2 funzioni fanno il **framing** minimo e affidabile.
-        
-    - `estrai_stringa_json`: micro-parser per leggere una chiave (“tipo”, “utente”, …) senza librerie.
-        
-    - `gestisci_comando`: router che smista ai vari `cmd_*` (uno per requisito).
-        
-    - (Più avanti) `azzera_scacchiera`, `esito_scacchiera`, `invia_stato_partita`, `cmd_crea_partita`, `cmd_lista_partite`, `cmd_richiesta_entrare`, `cmd_risposta_entrare`, `cmd_mossa`, `cmd_rematch`.
-        
-- **Database** (lo mettiamo dopo): prototipi tipo `db_inizializza`, `db_crea_partita`, … per persistere.
-    
-
----
-
-### Nomi ITA da usare nel **protocollo JSON**
-
-Client → Server:
-
-- `{"tipo":"CIAO","utente":"miriam"}`
-    
-- `{"tipo":"CREA_PARTITA","utente":"miriam","nome":"Partita di miriam"}`
-    
-- `{"tipo":"LISTA_PARTITE"}`
-    
-- `{"tipo":"ENTRA_RICHIESTA","utente":"luca","id_partita":3}`
-    
-- `{"tipo":"ENTRA_RISPOSTA","utente":"miriam","id_partita":3,"accetta":true,"ospite":"luca"}`
-    
-- `{"tipo":"MOSSA","utente":"miriam","id_partita":3,"cella":4}`
-    
-- `{"tipo":"REMATCH","utente":"miriam","id_partita":3,"voglio":true}`
-    
-
-Server → Client:
-
-- `{"tipo":"BENVENUTO","utente":"miriam"}`
-    
-- `{"tipo":"PARTITA_CREATA","id_partita":3,"proprietario":"miriam","nome":"..."}`
-    
-- `{"tipo":"ELENCO_PARTITE","partite":[...]}`
-    
-- `{"tipo":"ENTRA_RICHIESTO","id_partita":3,"da_utente":"luca"}` (solo al proprietario)
-    
-- `{"tipo":"ENTRA_ESITO","id_partita":3,"accetta":true,"ospite":"luca"}` (allo sfidante)
-    
-- `{"tipo":"STATO_PARTITA", ... }` (stato/bacheca/turno)
-    
-- `{"tipo":"MOSSA_OK","id_partita":3,"scacchiera":"...","prossimo_turno":"..."}`
-    
-- `{"tipo":"PARTITA_FINITA","id_partita":3,"esito":"vittoria|sconfitta|pareggio","vincitore":"...?"}`
-    
-- `{"tipo":"REMATCH_STATO","id_partita":3,"pronto_prop":true,"pronto_ospite":false}`
-    
-- `{"tipo":"ERRORE","messaggio":"..."}`
 
 
-# La logica di vittoria resta **sul server**; il client si limita a inviare mosse e ad aggiornare la griglia quando riceve `STATO_PARTITA` / `PARTITA_FINITA`.
+# Cose
+La logica di vittoria resta **sul server**; il client si limita a inviare mosse e ad aggiornare la griglia quando riceve `STATO_PARTITA` / `PARTITA_FINITA`.
+per quanto riguarda il client ho 
+- **`NetClient`** → solo canale di comunicazione (manda/riceve stringhe).
+- **`MessaggiBuilder`** → solo “fabbrica” di messaggi da inviare.
+- **`HomeController`** → oggi fa sia la logica che la GUI, ma ti piacerebbe alleggerirlo.

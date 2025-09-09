@@ -16,7 +16,7 @@ public class MessaggiBuilder {
 
     // NB: booleans come STRINGHE ("true"/"false") per il tuo router attuale
     public static String entraRisposta(String owner, int idPartita, String ospite, boolean accetta){
-        return "ENTRA_RISPOSTA " + owner + " " + idPartita + " " + (accetta?"1":"0") + " " + ospite;
+        return "ENTRA_RISPOSTA " + owner + " " + idPartita + " " + (accetta?1:0) + " " + ospite;
     }
 
     public static String mossa(String utente, int idPartita, int cella){
