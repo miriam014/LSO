@@ -19,12 +19,26 @@
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="520.0" prefWidth="530.0" style="-fx-background-color: #781F19;" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tris.Controller.HomeController">
    <children>
       <BorderPane layoutX="13.0" layoutY="173.0" prefHeight="447.0" prefWidth="411.0" style="-fx-background-color: white;" AnchorPane.bottomAnchor="13.0" AnchorPane.leftAnchor="13.0" AnchorPane.rightAnchor="13.0" AnchorPane.topAnchor="13.0">
-         <center>
+         <top>
+            <Pane prefHeight="32.0" prefWidth="504.0" style="-fx-background-color: #781F19;" BorderPane.alignment="CENTER">
+               <children>
+                  <Label layoutX="14.0" layoutY="-1.0" prefHeight="31.0" prefWidth="133.0" style="-fx-text-fill: white;" text="Tic-Tac-Toe">
+                     <font>
+                        <Font size="24.0" />
+                     </font>
+                  </Label>
+               </children>
+               <BorderPane.margin>
+                  <Insets bottom="10.0" />
+               </BorderPane.margin>
+            </Pane>
+         </top>
+         <right>
             <VBox prefHeight="146.0" prefWidth="504.0" BorderPane.alignment="CENTER">
                <children>
                   <HBox focusTraversable="true" nodeOrientation="LEFT_TO_RIGHT" prefHeight="33.0" prefWidth="294.0">
                      <children>
-                        <MenuButton fx:id="partiteDisponibili" mnemonicParsing="false" text="inviti partite">
+                        <MenuButton fx:id="partiteDisponibili" mnemonicParsing="false" stylesheets="@stile.css" text="inviti partite">
                         </MenuButton>
                      </children>
                      <opaqueInsets>
@@ -52,7 +66,7 @@
 
                         <!-- Popup centrale -->
                         <VBox fx:id="popupAttesa" alignment="CENTER" focusTraversable="true" prefHeight="321.0" prefWidth="504.0" spacing="10" style="-fx-padding: 20px; -fx-background-color: white;" visible="false" StackPane.alignment="CENTER">
-                           <Label fx:id="popupLabel" alignment="CENTER" contentDisplay="CENTER" prefHeight="24.0" prefWidth="346.0" style="-fx-font-size: 16px; -fx-background-color: #F9F5F4;" text="In attesa di un avversario..." textAlignment="CENTER">
+                           <Label fx:id="popupLabel" alignment="CENTER" contentDisplay="CENTER" prefHeight="30.0" prefWidth="477.0" style="-fx-font-size: 16px; -fx-background-color: #F9F5F4;" text="In attesa di un avversario..." textAlignment="CENTER">
                               <VBox.margin>
                                  <Insets bottom="210.0" top="-120.0" />
                               </VBox.margin>
@@ -64,10 +78,12 @@
                               <Blend />
                            </effect>
                         </VBox>
-                        <TableView nodeOrientation="LEFT_TO_RIGHT" prefHeight="308.0" prefWidth="504.0" stylesheets="@stile.css">
+                        <TableView fx:id="tablePartite" nodeOrientation="LEFT_TO_RIGHT" prefHeight="308.0" prefWidth="504.0" stylesheets="@stile.css">
                            <columns>
-                              <TableColumn minWidth="0.0" prefWidth="338.0" text="Avversario" />
-                              <TableColumn prefWidth="157.0" text="Stato" />
+                              <TableColumn fx:id="columAvversario" minWidth="0.0" prefWidth="144.0" text="Avversario" />
+                              <TableColumn fx:id="columStato" prefWidth="127.0" text="Stato" />
+                              <TableColumn fx:id="coulmRisultato" prefWidth="125.0" text="Risultato" />
+                              <TableColumn fx:id="columAzione" prefWidth="102.0" text="Action" />
                            </columns>
                         </TableView>
                      </children>
@@ -83,21 +99,7 @@
                   <Insets bottom="5.0" />
                </padding>
             </VBox>
-         </center>
-         <top>
-            <Pane prefHeight="32.0" prefWidth="504.0" style="-fx-background-color: #781F19;" BorderPane.alignment="CENTER">
-               <children>
-                  <Label layoutX="14.0" layoutY="-1.0" prefHeight="31.0" prefWidth="133.0" style="-fx-text-fill: white;" text="Tic-Tac-Toe">
-                     <font>
-                        <Font size="24.0" />
-                     </font>
-                  </Label>
-               </children>
-               <BorderPane.margin>
-                  <Insets bottom="10.0" />
-               </BorderPane.margin>
-            </Pane>
-         </top>
+         </right>
       </BorderPane>
    </children>
 </AnchorPane>

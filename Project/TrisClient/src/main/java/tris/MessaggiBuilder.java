@@ -6,8 +6,16 @@ public class MessaggiBuilder {
         return "CREA_PARTITA " + utente;
     }
 
-    public static String listaPartite(){
-        return "LISTA_PARTITE";
+    public static String listaAttesa(){
+        return "LISTA_ATTESA";
+    }
+
+    public static String miePartite(){
+        return "MIE_PARTITE";
+    }
+
+    public static String annullaPartita(Integer idPartita){
+        return "ANNULLA_PARTITA " + idPartita;
     }
 
     public static String entraRichiesta(String utente, int idPartita){

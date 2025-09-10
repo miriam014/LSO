@@ -55,23 +55,13 @@
 
 
 /* ---------- Stile delle celle ---------- */
-
-.split-pane {
-    -fx-background-color: transparent; /* Rende trasparente lo sfondo */
-    -fx-border-color: transparent;    /* Nasconde i bordi */
-}
-
-.split-pane > .split-pane-divider {
-    -fx-background-color: transparent; /* Rende trasparente il divider */
-}
-
 /* SplitMenuButton - container generale */
-.split-menu-button {
+.menu-button {
     -fx-background-color: transparent; /* lasciamo trasparente il contenitore */
 }
 
 /* Parte centrale con il testo */
-.split-menu-button > .label {
+.menu-button > .label {
     -fx-background-color: #9C3B35;
     -fx-text-fill: white;
     -fx-background-radius: 5 0 0 5; /* angoli arrotondati solo a sinistra */
@@ -79,19 +69,14 @@
 }
 
 /* Parte con la freccina */
-.split-menu-button > .arrow-button {
+.menu-button > .arrow-button {
     -fx-background-color:  #9C3B35;
     -fx-background-radius: 0 5px 5px 0; /* angoli arrotondati solo a destra */
 }
 
 /* Hover - schiarisce entrambe le parti */
-.split-menu-button:hover > .label,
-.split-menu-button:hover > .arrow-button {
+.menu-button:hover > .label,
+.menu-button:hover > .arrow-button {
     -fx-background-color: #B85B55;
 }
 
-/* Pressed - scurisce entrambe le parti */
-.split-menu-button:pressed > .label,
-.split-menu-button:pressed > .arrow-button {
-    -fx-background-color: #7A2C27;
-}

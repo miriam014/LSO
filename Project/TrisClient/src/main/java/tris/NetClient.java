@@ -22,17 +22,31 @@ public class NetClient {
             try {
                 String line;
                 StringBuilder buffer = new StringBuilder();
+                boolean buffering = false;
+
                 while ((line = in.readLine()) != null) {
                     if (line.isEmpty()) {
-                        if (buffer.length() > 0) {
+                        if (buffering &&  buffer.length() > 0) {
                             if (onMessage != null) {
                                 onMessage.accept(buffer.toString().trim());
                             }
                             buffer.setLength(0);
                         }
-                    } else {
-                        buffer.append(line).append("\n");
+                        buffering = false;
+                        continue;
                     }
+                    if (buffering) {
+                        buffer.append(line).append("\n");
+                        continue;
+                    }
+                    // riconosci intestazioni multiriga e inizia buffer
+                    if (line.equals("LISTA_ATTESA") || line.equals("MIE_PARTITE") || line.equals("LISTA_PARTITE")) {
+                        buffering = true;
+                        buffer.append(line).append("\n");
+                        continue;
+                    }
+                    // altrimenti è un messaggio monoriga -> consegna subito
+                    if (onMessage != null) onMessage.accept(line);
                 }
             } catch (IOException e) {
                 if (onMessage != null) {

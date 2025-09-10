@@ -1,12 +1,12 @@
 package tris.Controller;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-import javafx.stage.Popup;
 import javafx.util.Duration;
 import tris.Main;
 import tris.MessaggiBuilder;
@@ -17,19 +17,23 @@ public class HomeController {
     @FXML private TextField InsertName;
     @FXML private Label popupLabel;
     @FXML private VBox popupAttesa;
-   // @FXML private TableView<Partita> tablePartiteInCorso;
     @FXML private MenuButton partiteDisponibili;
+    @FXML public TableColumn<PartitaRow, String> columAvversario;
+    @FXML public TableColumn<PartitaRow, String> columStato;
+    @FXML public TableColumn<PartitaRow, String> coulmRisultato;
+    @FXML public TableColumn<PartitaRow, String> columAzione;;
+    @FXML private TableView<PartitaRow> tablePartite;
 
-    // Timer per attese/timeout
-    private PauseTransition waitNoOpponent; // timeout 40s in attesa avversario (owner)
-    private PauseTransition hidePopupDelay; // 3s per chiudere messaggi informativi
-
-    // Evita doppi cambi scena
+    // Timer
+    private PauseTransition waitNoOpponent; // timeout 40s in attesa avversario
+    private PauseTransition hidePopupDelay; // 3s per chiudere messaggi
     private boolean navigated = false;
+
+    private final ObservableList<PartitaRow> tableData = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
-        //initializeTableView();
+        initializeTableView();
         InsertName.textProperty().addListener((obs, vecchioValore, nuovoValore) -> {
             Sessione.setUsername(nuovoValore.trim());
         });
@@ -37,7 +41,11 @@ public class HomeController {
                 Platform.runLater(() -> handleServerMessage(msg))
         );
         partiteDisponibili.setOnMouseClicked(   event -> {
-            Main.getNetClient().send(MessaggiBuilder.listaPartite());
+            Main.getNetClient().send(MessaggiBuilder.listaAttesa());
+        });
+        Platform.runLater(() -> {
+            Main.getNetClient().send(MessaggiBuilder.listaAttesa());
+            Main.getNetClient().send(MessaggiBuilder.miePartite());
         });
     }
 
@@ -52,7 +60,6 @@ public class HomeController {
         Sessione.setUsername(nomeUtente);
         createNew.setDisable(true);
         partiteDisponibili.setDisable(true);
-        // disabilito il bottone per evitare che il client invia più richieste prima di ricevere almeno una risposta
         Main.getNetClient().send(MessaggiBuilder.creaPartita(nomeUtente));
         popupLabel.setText("In attesa di un avversario...");
         popupAttesa.setVisible(true);
@@ -67,6 +74,8 @@ public class HomeController {
             hidePopupDelay.setOnFinished(e -> {
                 popupAttesa.setVisible(false);
                 createNew.setDisable(false);
+                partiteDisponibili.setDisable(false);
+                Main.getNetClient().send(MessaggiBuilder.annullaPartita(Sessione.getIdPartita()));
             });
             hidePopupDelay.play();
         });
@@ -80,62 +89,80 @@ public class HomeController {
         if (msg.startsWith("ATTESA_AVVERSARIO")) {
             popupLabel.setText("In attesa di un avversario...");
             popupAttesa.setVisible(true);
+            String[] parts = msg.split("\\s+");
+            for (String p : parts) {
+                if (p.startsWith("id=")) {
+                    try { Sessione.setIdPartita(Integer.parseInt(p.substring(3))); } catch (Exception ignore) {}
+                }
+            }
 
-        } else if (msg.startsWith("LISTA_PARTITE")) {
-            //tablePartiteInCorso.getItems().clear();
+        } else if (msg.startsWith("LISTA_ATTESA")) {
             partiteDisponibili.getItems().clear();
             String[] righe = msg.split("\n"); // per riga siccome i messaggi vengono separati per riga dal server
+            String me = Sessione.getUsername() == null ? "" : Sessione.getUsername();
 
-            for (int i = 1; i < righe.length; i++) { // salto la prima riga "LISTA_PARTITE"
+            for (int i = 1; i < righe.length; i++) { // salto la prima riga "LISTA_ATTESA"
                 String riga = righe[i].trim();
                 if (riga.isEmpty()) continue;
 
-                // riga = "1 IN_ATTESA proprietario=Alice ospite=-"
                 String[] tokens = riga.split("\\s+");
-                if (tokens.length < 2) continue;
+                int idPartita = Integer.parseInt(tokens[0]);
+                String proprietario = tokens[2].split("=", 2)[1];
 
-                int idPartita;
-                try { idPartita = Integer.parseInt(tokens[0]); }
-                catch (NumberFormatException e) { continue; }
-
-                String stato = tokens[1];
-                String proprietario = tokens[2].split("=",2)[1];
-                String ospite = tokens[3].split("=",2)[1];
-                if (proprietario == null) proprietario = "?";
-                if (ospite == null) ospite = "-";
-
-                if ("IN_ATTESA".equals(stato) && (ospite.equals("-") || ospite.isEmpty())) {
-                    final int idPartitaFinal = idPartita;
-                    if (proprietario.equals(Sessione.getUsername())) { continue; }
-                    MenuItem item = new MenuItem("Unisciti alla partita di " + proprietario);
-                    item.setOnAction(e -> {
-                        String utente = InsertName.getText().trim().replace(" ", "_");
-                        if (utente.isEmpty()) {
-                            popupLabel.setText("Inserisci prima nome utente.");
-                            popupAttesa.setVisible(true);
-                            return;
-                        }
-                        Sessione.setUsername(utente);
-                        System.out.println("[DEBUG] Invio ENTRA_RICHIESTA per partita " + idPartitaFinal);
-                        Main.getNetClient().send(MessaggiBuilder.entraRichiesta(utente, idPartitaFinal));
-                        popupLabel.setText("Richiesta inviata. Attendi la risposta del proprietario...");
+                MenuItem item = new MenuItem("Unisciti alla partita di " + proprietario);
+                item.setOnAction(e -> {
+                    String utente = InsertName.getText().trim().replace(" ", "_");
+                    if (utente.isEmpty()) {
+                        popupLabel.setText("Inserisci prima nome utente.");
                         popupAttesa.setVisible(true);
-                    });
-                    partiteDisponibili.getItems().add(item);
-                }
-                if (partiteDisponibili.isShowing()) {
-                    partiteDisponibili.hide();
-                    partiteDisponibili.show();
-                }
+                        return;
+                    }
+                    Sessione.setUsername(utente);
+                    Main.getNetClient().send(MessaggiBuilder.entraRichiesta(utente, idPartita));
+                    popupLabel.setText("Richiesta inviata. Attendi la risposta del proprietario...");
+                    popupAttesa.setVisible(true);
+                    partiteDisponibili.setDisable(true);
+                });
+                partiteDisponibili.getItems().add(item);
             }
             if (partiteDisponibili.getItems().isEmpty()) {
                 partiteDisponibili.getItems().add(new MenuItem("nessuna partita disponibile"));
-            } else { partiteDisponibili.show(); }
-            System.out.println("Items nel menu: " + partiteDisponibili.getItems().size());
+            }
+
+        } else if (msg.startsWith("MIE_PARTITE")) {
+            tableData.clear();
+            String[] righe = msg.split("\n");
+            for (int i = 1; i < righe.length; i++) {
+                String riga = righe[i].trim();
+                if (riga.isEmpty()) continue;
+
+                String[] tokens = riga.split("\\s+");
+                int idPartita = Integer.parseInt(tokens[0]);
+                String stato = tokens[1];
+                String proprietario = tokens[2].split("=")[1];
+                String ospite = tokens[3].split("=")[1];
+                String me = Sessione.getUsername();
+                String avversario = me.equals(proprietario) ? ospite : proprietario;
+
+                String risultato = "-";
+                if ("TERMINATA".equals(stato)) {
+                    for (String t : tokens) {
+                        if (t.startsWith("vinc=")) {
+                            String vinc = t.substring("vinc=".length());
+                            if ("=".equals(vinc)) risultato = "Pareggio";
+                            else if (vinc.equals(me)) risultato = "Hai vinto";
+                            else risultato = "Hai perso";
+                        }
+                    }
+                }
+                tableData.add(new PartitaRow(idPartita, avversario, stato, risultato));
+            }
 
         } else if (msg.startsWith("ENTRA_RICHIESTA_INVIATA")) {
             popupLabel.setText("Richiesta inviata. Attendi la risposta del proprietario...");
             popupAttesa.setVisible(true);
+            partiteDisponibili.setDisable(true);
+            createNew.setDisable(true);
 
         } else if (msg.startsWith("ENTRA_RICHIESTA")) {
             if (waitNoOpponent != null) { waitNoOpponent.stop(); waitNoOpponent = null; }
@@ -169,41 +196,96 @@ public class HomeController {
                     }
                 }
             });
+
         } else if (msg.startsWith("ENTRA_ESITO")) {
             if (waitNoOpponent != null) { waitNoOpponent.stop(); waitNoOpponent = null; }
             if (hidePopupDelay != null) { hidePopupDelay.stop(); hidePopupDelay = null; }
             if (msg.contains("accetta=true")){
                 popupAttesa.setVisible(false);
-                try{
-                    Main.setRoot("partita.fxml");
-                } catch (Exception e){
-                    e.printStackTrace();
-                }
+                try{ Main.setRoot("partita.fxml"); } catch (Exception e){ e.printStackTrace(); }
             } else {
                 popupLabel.setText("Richiesta rifiutata dal proprietario.");
                 popupAttesa.setVisible(true);
 
-                PauseTransition wait3sec = new PauseTransition(Duration.seconds(3));
-                wait3sec.setOnFinished(event -> {
+                PauseTransition wait = new PauseTransition(Duration.seconds(3));
+                wait.setOnFinished(event -> {
                     popupAttesa.setVisible(false);
                     createNew.setDisable(false);
+                    partiteDisponibili.setDisable(false);
                 });
-                wait3sec.play();
+                wait.play();
             }
         }
+        else if (msg.startsWith("AVVERSARIO_DISCONNESSO")) {
+            String[] parts = msg.split("\\s+");
+            int idPartita = Integer.parseInt(parts[1].split("=")[1]);
+            popupLabel.setText("Il tuo avversario si è disconnesso (partita " + idPartita + ").");
+            popupAttesa.setVisible(true);
+
+            // aggiorna tabella -> stato TERMINATA
+            int idx = -1;
+            for (int k = 0; k < tableData.size(); k++) {
+                if (tableData.get(k).getId() == idPartita) {
+                    idx = k; break;
+                }
+            }
+            if (idx >= 0) {
+                PartitaRow old = tableData.get(idx);
+                tableData.set(idx, new PartitaRow(idPartita, old.getAvversario(), "Terminata", "Avversario disconnesso"));
+            } else {
+                tableData.add(new PartitaRow(idPartita, "?", "Terminata", "Avversario disconnesso"));
+            }
+
+        } else if (msg.startsWith("STATO_PARTITA")) {
+            String[] tokens = msg.split("\\s+");
+            if (tokens.length < 7) return;
+
+            // atteso: 0:STATO_PARTITA 1:id 2:stato 3:scacchiera 4:turno= 5:proprietario= 6:ospite=
+            int idPartita = Integer.parseInt(tokens[1]);
+            String stato = tokens[2];
+            String proprietario = tokens[5].split("=")[1];
+            String ospite = tokens[6].split("=")[1];
+            String me = Sessione.getUsername();
+            String avversario = me.equals(proprietario) ? ospite : proprietario;
+
+            int idx = -1;
+            for (int k = 0; k < tableData.size(); k++) {
+                if (tableData.get(k).getId() == idPartita) { idx = k; break; }
+            }
+
+            PartitaRow row = new PartitaRow(idPartita, avversario, stato, "-");
+            if (idx >= 0) tableData.set(idx, row);
+            else tableData.add(row);
+        }
+        createNew.setDisable(false);
+        partiteDisponibili.setDisable(false);
     }
 
-   /* private void initializeTableView() {
-        TableColumn<Partita, Number> idCol = new TableColumn<>("ID");
-        idCol.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().getId()));
+    private void initializeTableView() {
+        tablePartite.setItems(tableData);
+        tablePartite.setPlaceholder(new Label("Nessuna partita"));
 
-        TableColumn<Partita, String> proprietarioCol = new TableColumn<>("Proprietario");
-        proprietarioCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getProprietario()));
+        // Colonne (usa gli fx:id che hai messo in FXML)
+        columAvversario.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getAvversario()));
+        columStato.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getStato()));
+        coulmRisultato.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getRisultato()));
+    }
 
-        TableColumn<Partita, String> ospiteCol = new TableColumn<>("Ospite");
-        ospiteCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getOspite()));
-
-        tableView.getColumns().addAll(idCol, proprietarioCol, ospiteCol);
-    }*/
+    public static final class PartitaRow {
+        private final int id;
+        private final String avversario;
+        private final String stato;
+        private final String risultato;
+        public PartitaRow(int id, String avversario, String stato, String risultato) {
+            this.id = id; this.avversario = avversario; this.stato = stato; this.risultato = risultato;
+        }
+        public int getId() { return id; }
+        public String getAvversario() { return avversario; }
+        public String getStato() { return stato; }
+        public String getRisultato() { return risultato; }
+    }
 }
 

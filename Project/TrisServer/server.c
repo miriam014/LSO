@@ -67,11 +67,20 @@ void *handle_client(void *arg) {
             pthread_mutex_unlock(&client_count_lock);
 
             close(cSocket);
+            rimuovi_partite_di_sock(cSocket);
             return NULL;
         }
 
         buffer[byte_received] = '\0';  // assicurati che sia una stringa terminata
-        printf("Messaggio ricevuto: %s\n", buffer);
+        // rimuovi eventuali \r o \n finali
+        for (int i = 0; i < byte_received; i++) {
+            if (buffer[i] == '\r' || buffer[i] == '\n') {
+                buffer[i] = '\0';
+                break;
+            }
+        }
+
+        printf("[sock=%d] -> %s\n", cSocket, buffer);
         fflush(stdout); // forza la stampa immediata nel terminale del container
 
 
@@ -83,8 +92,14 @@ void *handle_client(void *arg) {
         if (sscanf(buffer, "CREA_PARTITA %31s", utente) == 1) {
             cmd_crea_partita(cSocket, utente);
         }
-        else if (strncmp(buffer, "LISTA_PARTITE", 13) == 0) {
-            cmd_lista_partite(cSocket);
+        else if (strcmp(buffer, "LISTA_ATTESA") == 0) {
+            cmd_partite_in_attesa(cSocket);
+        }
+        else if (strcmp(buffer, "MIE_PARTITE") == 0) {
+            cmd_mie_partite(cSocket);
+        }
+        else if (sscanf(buffer, "ANNULLA_PARTITA %d", &id) == 1) {
+            cmd_annulla_partita(cSocket, id);
         }
         else if (sscanf(buffer, "ENTRA_RICHIESTA %31s %d", utente, &id) == 2) {
             cmd_entra_richiesta(cSocket, utente, id);

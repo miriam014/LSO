@@ -17,6 +17,7 @@ static Partita* trova_partita(int id){
         if (g_partite[i].id==id) return &g_partite[i];
     return NULL;
 }
+
 static const char* stato_to_str(StatoPartita s){
     switch(s){
         case ST_NUOVA:     return "NUOVA";
@@ -27,18 +28,12 @@ static const char* stato_to_str(StatoPartita s){
     }
 }
 
-/* == I/O a riga == */
-ssize_t send_line(int sock, const char *s){
-    size_t n=strlen(s);
-    if (write(sock,s,n)<0) return -1;
-    if (write(sock,"\n",1)<0) return -1;
-    return (ssize_t)(n+1);
-}
-
+/* == I/O  == */
 ssize_t send_msg(int sock, const char *s){
-    if (send_line(sock, s) < 0) return -1;
-    if (send_line(sock, "") < 0) return -1;  // riga vuota
-    return 0;
+    ssize_t n = strlen(s);
+    if (write(sock, s, n) < 0) return -1;
+    if (write(sock, "\n", 1) < 0) return -1;
+    return n+1;
 }
 
 /* == Broadcast / Stato == */
@@ -57,30 +52,61 @@ static void invia_ai_giocatori(Partita *p, const char *msg){
 }
 
 void invia_stato_partita(Partita *p){
+    if (!p || p->id==0) return;
     char buf[512];
     snprintf(buf,sizeof(buf),
         "STATO_PARTITA %d %s %s turno=%s proprietario=%s ospite=%s",
         p->id, stato_to_str(p->stato), p->scacchiera, p->turno, p->proprietario, (p->ospite[0]?p->ospite:"-"));
+    
     if (p->stato==ST_IN_ATTESA) invia_a_tutti(buf,-1); 
     else invia_ai_giocatori(p,buf);
 }
 
+void rimuovi_partite_di_sock(int sock) {
+    pthread_mutex_lock(&g_lock);
+    for (int i=0; i<MAX_PARTITE; i++) {
+        Partita *p = &g_partite[i];
+        if (p->id == 0) continue;
+
+        if (p->proprietario_sock == sock || p->ospite_sock == sock) {
+            // Avvisa l’altro giocatore se c’è
+            int avversario_sock = (p->proprietario_sock == sock) ? p->ospite_sock : p->proprietario_sock;
+            if (avversario_sock > 0) {
+                char buf[256];
+                snprintf(buf, sizeof(buf), "AVVERSARIO_DISCONNESSO partita=%d", p->id);
+                send_msg(avversario_sock, buf);
+            }
+            memset(p, 0, sizeof(*p)); // Libera lo slot
+        }
+    }
+    pthread_mutex_unlock(&g_lock);
+}
 
 
 /* == Gioco (tris) == */
-void azzera_scacchiera(Partita *p){ memset(p->scacchiera,'.',9); p->scacchiera[9]='\0'; }
-static int riga_ok(const char b[10], int a,int bb,int c){ return b[a]!='.' && b[a]==b[bb] && b[a]==b[c]; }
+void azzera_scacchiera(Partita *p){ 
+    memset(p->scacchiera,'.',9); 
+    p->scacchiera[9]='\0'; 
+}
+
+static int riga_ok(const char b[10], int a,int bb,int c){ 
+    return b[a]!='.' && b[a]==b[bb] && b[a]==b[c];
+}
+
 char esito_scacchiera(const char b[10]){
     int L[8][3]={{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
-    for(int i=0;i<8;i++) if(riga_ok(b,L[i][0],L[i][1],L[i][2])) return b[L[i][0]];
-    for(int i=0;i<9;i++) if(b[i]=='.') return '.';
+    for(int i=0;i<8;i++) {
+        if(riga_ok(b,L[i][0],L[i][1],L[i][2]))
+        return b[L[i][0]];
+    }
+    for(int i=0;i<9;i++){
+        if(b[i]=='.') return '.';
+    }
     return '=';
 }
 
 /* == Comandi == */
 void cmd_crea_partita(int sock, const char *utente){
-    printf("DEBUG: cmd_crea_partita invoked sock=%d utente=[%s]\n", sock, utente);
-    fflush(stdout);
     pthread_mutex_lock(&g_lock);
     Partita *p=NULL;
     for (int i=0; i<MAX_PARTITE; i++) {
@@ -109,30 +135,67 @@ void cmd_crea_partita(int sock, const char *utente){
     send_msg(sock, "ATTESA_AVVERSARIO");
 }
 
-//questo restituisce la lista delle partite in corso e in attesa
-void cmd_lista_partite(int sock){
+//questo restituisce la lista delle mie partite in corso e terminate
+void cmd_mie_partite(int sock){
     pthread_mutex_lock(&g_lock);
-    char buf[4096]; buf[0]='\0'; 
-    int offset = 0;
-
-    offset += snprintf(buf + offset, sizeof(buf) - offset, "LISTA_PARTITE\n");
+    send_msg(sock, "MIE_PARTITE");
 
     for (int i=0; i<MAX_PARTITE; i++) {
-        if (g_partite[i].id && g_partite[i].stato==ST_IN_ATTESA){
-            offset += snprintf(buf + offset, sizeof(buf) - offset, "%d %s proprietario=%s ospite=%s\n",
-                 g_partite[i].id, 
-                 stato_to_str(g_partite[i].stato),
-                 g_partite[i].proprietario,
-                 g_partite[i].ospite[0]?g_partite[i].ospite:"-"
-            );
+        Partita *p = &g_partite[i];
+        if (!p->id) continue;
+        if (p->proprietario_sock <= 0 && p->ospite_sock <= 0)  continue;
+
+        if (p->stato==ST_IN_CORSO && (p->proprietario_sock == sock || p->ospite_sock == sock)){
+            char buf[256];
+            snprintf(buf, sizeof(buf),
+                "%d %s proprietario=%s ospite=%s scacchiera=%s turno=%s",
+                p->id, stato_to_str(p->stato), p->proprietario, p->ospite, p->scacchiera, p->turno );
+            send_msg(sock, buf);
+            
+        } else if (p->stato==ST_TERMINATA && (p->proprietario_sock == sock || p->ospite_sock == sock)){
+            char esito = esito_scacchiera(p->scacchiera);
+            // qui se l'esito è = allora assegno "=" come vincitore(parità), altrimenti il nome del vincitore, prima abbiamo assegnato X al proprietario e O all'ospite
+            const char *vinc = (esito=='=' ? "=" : (esito=='X' ? p->proprietario : p->ospite));
+            
+            char buf[256];
+            snprintf(buf, sizeof(buf),
+                "%d %s proprietario=%s ospite=%s vinc=%s",
+                p->id, stato_to_str(p->stato), p->proprietario, p->ospite[0]?p->ospite:"-", vinc );
+            send_msg(sock, buf);
         }
     }
+    send_msg(sock, ""); // riga vuota finale
     pthread_mutex_unlock(&g_lock);
-    offset += snprintf(buf + offset, sizeof(buf) - offset, "\n"); // riga vuota finale
-    // invia tutto insieme in un colpo solo
-    if (offset > 0) {
-        write(sock, buf, offset);
+} 
+
+//lista partite in attesa di un partecipante
+void cmd_partite_in_attesa(int sock){
+    pthread_mutex_lock(&g_lock);
+    send_msg(sock, "LISTA_ATTESA");
+
+    for (int i=0; i<MAX_PARTITE; i++) {
+        Partita *p = &g_partite[i];
+        if (!p->id) continue;
+
+        if (p->stato==ST_IN_ATTESA && p->proprietario_sock != sock){
+            char buf[256];
+            snprintf(buf,sizeof(buf),
+                "%d %s proprietario=%s ospite=%s",
+                p->id, stato_to_str(p->stato), p->proprietario, p->ospite[0]?p->ospite:"-" );
+            send_msg(sock, buf);
+        } 
     }
+    send_msg(sock, ""); // riga vuota finale
+    pthread_mutex_unlock(&g_lock);
+}
+
+void cmd_annulla_partita(int sock, int id_partita){
+    pthread_mutex_lock(&g_lock);
+    Partita *p = trova_partita(id_partita);
+    if (p && p->stato ==ST_IN_ATTESA && p->proprietario_sock == sock) {
+       memset(p, 0, sizeof(*p)); // libera lo slot
+    }
+    pthread_mutex_unlock(&g_lock);
 }
 
 // un utente richiede di entrare in una partita in attesa di un avversario
@@ -155,11 +218,6 @@ void cmd_entra_richiesta(int sock, const char *utente, int id_partita){
     p->ospite_sock = sock;
     int owner_sock = p->proprietario_sock;
     pthread_mutex_unlock(&g_lock);
-
-    // Debug log
-    printf("DEBUG: cmd_entra_richiesta: ospite=%s richiede partita id=%d\n", utente, id_partita);
-    printf("DEBUG: Proprietario sock=%d\n", owner_sock);
-
 
     // invio notifica al proprietario che qualcuno vuole entrare
     char buf[256];
@@ -195,6 +253,7 @@ void cmd_entra_risposta(int sock, const char *ownerUser, int id_partita, int acc
     azzera_scacchiera(p);
     snprintf(p->turno,sizeof(p->turno), "%s", p->proprietario);
     p->pronto_proprietario = p->pronto_ospite = 0;
+
     pthread_mutex_unlock(&g_lock);
 
     // notifico l'esito al richiedente
@@ -202,7 +261,8 @@ void cmd_entra_risposta(int sock, const char *ownerUser, int id_partita, int acc
     snprintf(buf,sizeof(buf), "ENTRA_ESITO partita=%d accetta=true ospite=%s", id_partita, p->ospite);
     if (guest_sock > 0) send_msg(guest_sock, buf);
 
-    invia_stato_partita(p); //invia sttao partita lo riceve anche il proprietario
+    cmd_mie_partite(p->proprietario_sock); //invia le mie partite lo riceve solo il proprietario
+    cmd_mie_partite(p->ospite_sock); //invia le mie partite lo riceve solo l'ospite
 }
 
 void cmd_mossa(int sock, const char *utente, int id_partita, int cella){
@@ -253,7 +313,10 @@ void cmd_mossa(int sock, const char *utente, int id_partita, int cella){
         snprintf(buf,sizeof(buf), "PARTITA_FINITA id_partita=%d vincitore=%s",
                  id_partita, (esito=='='?"pareggio": (esito=='X'?p->proprietario:p->ospite)));
         invia_ai_giocatori(p, buf);
-        invia_stato_partita(p);
+
+        // aggiorno le mie partite di entrambi
+        cmd_mie_partite(p->proprietario_sock);
+        cmd_mie_partite(p->ospite_sock);
     }
     pthread_mutex_unlock(&g_lock);
 }

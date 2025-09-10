@@ -51,11 +51,13 @@ void *handle_client(void *arg);  // Dichiarazione della funzione
 // Comunicazione
 //recive line non ci serve perchè utilizziamo direttamente recv 
 //invece abbiamo scritto send line invece di utilizzare direttemente write così da poter leggere i messaggi separati riga per riga senza doverli gestire con strlen()
-ssize_t send_line(int sock, const char *s);
+ssize_t send_msg(int sock, const char *s);
 
 // Comandi
 void cmd_crea_partita(int sock, const char *utente);
-void cmd_lista_partite(int sock);
+void cmd_mie_partite(int sock);
+void cmd_partite_in_attesa(int sock);
+void cmd_annulla_partita(int sock, int id_partita);
 void cmd_entra_richiesta(int sock, const char *utente, int id_partita);
 void cmd_entra_risposta(int sock, const char *ownerUser, int id_partita, int accetta, const char *ospite);
 void cmd_mossa(int sock, const char *utente, int id_partita, int cella);
