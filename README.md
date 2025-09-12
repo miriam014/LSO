@@ -1,21 +1,25 @@
 ## Istruzioni per la compilazione
 
 **1. Avviare il progetto con Docker**
-Posizionati nella cartella contenente il fil `docker-compose.yml` ed esegui sul terminale 
+Posizionati nella cartella contenente il fil `docker-compose.yml` e
 
+Nel caso in cui hai modificato il Dockerfile esegui
 	docker-compose build
+
+Altrimenti pulisci solo lo stato con 
+	docker-compose down 
 
 **2**. Successivamente avvia il **server** 
 
 	docker-compose up server
 
-In questo modo il server si metterà in ascolto sulla porta 5001 e sarà pronto per ricevere connessioni dai client.
+In questo modo il server si metterà in ascolto sulla porta 5001 e sarà pronto per ricevere connessioni dai client. 
+	(ovvimanete puoi scrivere anche tutto insieme "docker-compose down && docker-compose up server" per fare prima)
 
 **3.** Successivamente avvia il **client** 
 Apri un nuovo terminale e posizionati nella cartella del client (o se preferisci quello della tua IDE) ed eseguire la compilazione e l'avio della GUI JavaFX:  (**solo dopo** che il server è attivo)
 
-	mvn clean install
-	mvn javafx:run
+	mvn clean install && mvn javafx:run
 
 A questo punto si aprirà l'interfaccia grafica e si potrà iniziare ad interagire con il server.
 

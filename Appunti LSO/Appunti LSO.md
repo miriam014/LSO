@@ -1,5 +1,23 @@
+# Cose Da Fare
+La logica di vittoria resta **sul server**; il client si limita a inviare mosse e ad aggiornare la griglia quando riceve `STATO_PARTITA` / `PARTITA_FINITA`.
+per quanto riguarda il client ho 
+- **`NetClient`** → solo canale di comunicazione (manda/riceve stringhe).
+- **`MessaggiBuilder`** → solo “fabbrica” di messaggi da inviare.
+- **`HomeController`** → oggi fa sia la logica che la GUI
+
+- Bisogna fare in modo che una volta che l'utente inserisce l'username, resti fisso nel label e non si resetti ogni volta altrimenti l'utente ogni volta deve rimetterlo
+- implementare la pagina partite.fxml già collegata ad un Controller 
+  La logica di vittoria delle mosse e del turno così che del segno "X" o "O" è stata già decisa ed implementata nel server. Dopo aver costruito la tabella implementare la logica dove ad ogni posizione premuta dall'utente viene mandato il messaggio al server.
+  I messaggi da scrivere sono anchessi stati già implementati nel server, ovviamente non tutti bisogna vedere durante lo sviluppo cosa manca
+- Dopo aver fatto ciò verificare che i bottoni nella tabella della hompage funzionino, ovvero che se preme continua si riapre la pagina della partita nello stato in cui la si era abbandonata. (la logica è stata implementata ma non so se funziona visto che al momento la pagina delle partite è vuota).
+- implementare poi il messaggio da mandare all'avversario della partita nel caso in cui il client prema Rematch. Anche qui la logica è stata fatta ma lo scambio dei messaggi e dell'apparizione dell'allert deve essere implementato
+
+
+Ovviamente non è normale avere un client con un controller da oltre 300 righe di codice e il resto delle classi quasi vuoto quindi mi limiterei semlicemnete a spostare la logica dell'allert all'interno della classe controller. per il resto lasciamo tutto così tanto a lei queste cose non devono interessare. Si tratta solo di una brutta gestione delle classi per il resto sti cazz.
+Divertiti amore, per qualsiasi cosa ricordati di chiedere baciooo
 ## Server 
 ###  Funzioni usate nel server c
+NON SONO TUTTE
 
  **1. `socket()`**
 `int socket(int domain, int type, int protocol);`
@@ -110,25 +128,3 @@ Permette di usare **flag avanzati**, ad esempio:
  Come `write()`, ma specifica per socket
 - Anche qui puoi usare flag (es. `MSG_NOSIGNAL` per non ricevere SIGPIPE su disconnessione)
 
-### Messaggi 
- **Client (giocatore)** manda:
-- `crea_partita` → per creare una nuova partita
-- `accetta_partecipazione` → per accettare un giocatore nella partita
-- `rifiuta_partecipazione` → per rifiutarlo
-- `inizia_nuova` → per iniziare una nuova partita dopo una terminata
-
- **Server** risponde o invia:
-- `partecipa_partita` → ti propone un nuovo giocatore che vuole unirsi
-- `vittoria` / `sconfitta` / `pareggio` → fine partita    
-- `aggiorna_stato` (tipo `"è il tuo turno"`, `"mossa avversaria"`, ecc.)
-- `errore` → messaggi di errore vari
-
-
-
-
-# Cose
-La logica di vittoria resta **sul server**; il client si limita a inviare mosse e ad aggiornare la griglia quando riceve `STATO_PARTITA` / `PARTITA_FINITA`.
-per quanto riguarda il client ho 
-- **`NetClient`** → solo canale di comunicazione (manda/riceve stringhe).
-- **`MessaggiBuilder`** → solo “fabbrica” di messaggi da inviare.
-- **`HomeController`** → oggi fa sia la logica che la GUI, ma ti piacerebbe alleggerirlo.

@@ -277,11 +277,23 @@ public class HomeController {
                 new SimpleStringProperty(c.getValue()!= null ? c.getValue().getRisultato() : ""));
 
         columAzione.setCellFactory(col -> new TableCell<PartitaRow, Void>() {
-            private final Button actionButton = new Button("Continua");
+            private final Button actionButton = new Button();
             {
                 actionButton.setOnAction(e -> {
                     PartitaRow partita = getTableView().getItems().get(getIndex());
-                    System.out.println("[DEBUG] Bottone premuto per partita ID=" + partita.getId());
+                    int idPartita = partita.getId();
+                    String stato = partita.getStato();
+
+                    if ("IN_CORSO".equals(stato)) {
+                        Sessione.setIdPartita(idPartita);
+                        try { Main.setRoot("partita.fxml"); } catch (Exception ex) { ex.printStackTrace();}
+                        System.out.println("[DEBUG] riprendo partita in corso ID=" + idPartita);
+
+                    } else if ("TERMINATA".equals(stato)) {
+                        String me = Sessione.getUsername();
+                        Main.getNetClient().send(MessaggiBuilder.rematch(me, idPartita, true));
+                        System.out.println("[DEBUG] Richiesta rematch per partita ID=" + idPartita);
+                    }
                 });
             }
 
@@ -291,7 +303,26 @@ public class HomeController {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(actionButton);
+                    PartitaRow partita = getTableView().getItems().get(getIndex());
+
+                    if ("IN_CORSO".equals(partita.getStato())) {
+                        actionButton.setText("Continua");
+                        actionButton.setDisable(false);
+                        setGraphic(actionButton);
+
+                    } else if ("TERMINATA".equals(partita.getStato())) {
+                        if ("Avversario disconnesso".equals(partita.getRisultato())) {
+                            // nessun bottone se avversario disconnesso
+                            setGraphic(null);
+                        } else {
+                            actionButton.setText("Rematch");
+                            actionButton.setDisable(false);
+                            setGraphic(actionButton);
+                        }
+
+                    } else {
+                        setGraphic(null);
+                    }
                 }
             }
         });

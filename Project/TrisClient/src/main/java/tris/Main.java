@@ -36,6 +36,7 @@ public class Main extends Application {
         Parent root = FXMLLoader.load(Main.class.getResource("/interfaccia/" + fxml));
         primaryStage.setScene(new Scene(root));
         primaryStage.setTitle("Tris");
+        primaryStage.setResizable(false);
         primaryStage.show();
     }
 
