@@ -75,6 +75,7 @@ void rimuovi_partite_di_sock(int sock) {
                 char buf[256];
                 snprintf(buf, sizeof(buf), "AVVERSARIO_DISCONNESSO partita=%d", p->id);
                 send_msg(avversario_sock, buf);
+                cmd_mie_partite(avversario_sock); // aggiorna le mie partite dell’avversario
             }
             memset(p, 0, sizeof(*p)); // Libera lo slot
         }
@@ -151,7 +152,8 @@ void cmd_mie_partite(int sock){
                 "%d %s proprietario=%s ospite=%s scacchiera=%s turno=%s",
                 p->id, stato_to_str(p->stato), p->proprietario, p->ospite, p->scacchiera, p->turno );
             send_msg(sock, buf);
-            
+            printf("[DEBUG][cmd_mie_partite] inviando lista a sock=%d\n", sock);
+
         } else if (p->stato==ST_TERMINATA && (p->proprietario_sock == sock || p->ospite_sock == sock)){
             char esito = esito_scacchiera(p->scacchiera);
             // qui se l'esito è = allora assegno "=" come vincitore(parità), altrimenti il nome del vincitore, prima abbiamo assegnato X al proprietario e O all'ospite
@@ -162,6 +164,8 @@ void cmd_mie_partite(int sock){
                 "%d %s proprietario=%s ospite=%s vinc=%s",
                 p->id, stato_to_str(p->stato), p->proprietario, p->ospite[0]?p->ospite:"-", vinc );
             send_msg(sock, buf);
+            printf("[DEBUG][cmd_mie_partite] inviando lista a sock=%d\n", sock);
+
         }
     }
     send_msg(sock, ""); // riga vuota finale

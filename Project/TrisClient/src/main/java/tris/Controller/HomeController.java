@@ -21,7 +21,7 @@ public class HomeController {
     @FXML public TableColumn<PartitaRow, String> columAvversario;
     @FXML public TableColumn<PartitaRow, String> columStato;
     @FXML public TableColumn<PartitaRow, String> coulmRisultato;
-    @FXML public TableColumn<PartitaRow, String> columAzione;;
+    @FXML public TableColumn<PartitaRow, Void> columAzione;
     @FXML private TableView<PartitaRow> tablePartite;
 
     // Timer
@@ -29,11 +29,11 @@ public class HomeController {
     private PauseTransition hidePopupDelay; // 3s per chiudere messaggi
     private boolean navigated = false;
 
-    private final ObservableList<PartitaRow> tableData = FXCollections.observableArrayList();
-
     @FXML
     public void initialize() {
         initializeTableView();
+        Main.getNetClient().send(MessaggiBuilder.miePartite());
+
         InsertName.textProperty().addListener((obs, vecchioValore, nuovoValore) -> {
             Sessione.setUsername(nuovoValore.trim());
         });
@@ -45,7 +45,6 @@ public class HomeController {
         });
         Platform.runLater(() -> {
             Main.getNetClient().send(MessaggiBuilder.listaAttesa());
-            Main.getNetClient().send(MessaggiBuilder.miePartite());
         });
     }
 
@@ -59,6 +58,7 @@ public class HomeController {
         }
         Sessione.setUsername(nomeUtente);
         createNew.setDisable(true);
+        InsertName.setDisable(true);
         partiteDisponibili.setDisable(true);
         Main.getNetClient().send(MessaggiBuilder.creaPartita(nomeUtente));
         popupLabel.setText("In attesa di un avversario...");
@@ -130,7 +130,9 @@ public class HomeController {
             }
 
         } else if (msg.startsWith("MIE_PARTITE")) {
-            tableData.clear();
+            ObservableList<PartitaRow> items = tablePartite.getItems();
+            items.clear();
+
             String[] righe = msg.split("\n");
             for (int i = 1; i < righe.length; i++) {
                 String riga = righe[i].trim();
@@ -155,8 +157,10 @@ public class HomeController {
                         }
                     }
                 }
-                tableData.add(new PartitaRow(idPartita, avversario, stato, risultato));
+                items.add(new PartitaRow(idPartita, avversario, stato, risultato));
             }
+            System.out.println("[DEBUG] Dopo parsing, table size: " + tablePartite.getItems().size());
+            tablePartite.refresh();
 
         } else if (msg.startsWith("ENTRA_RICHIESTA_INVIATA")) {
             popupLabel.setText("Richiesta inviata. Attendi la risposta del proprietario...");
@@ -202,6 +206,7 @@ public class HomeController {
             if (hidePopupDelay != null) { hidePopupDelay.stop(); hidePopupDelay = null; }
             if (msg.contains("accetta=true")){
                 popupAttesa.setVisible(false);
+                Main.getNetClient().send(MessaggiBuilder.miePartite());
                 try{ Main.setRoot("partita.fxml"); } catch (Exception e){ e.printStackTrace(); }
             } else {
                 popupLabel.setText("Richiesta rifiutata dal proprietario.");
@@ -224,23 +229,22 @@ public class HomeController {
 
             // aggiorna tabella -> stato TERMINATA
             int idx = -1;
-            for (int k = 0; k < tableData.size(); k++) {
-                if (tableData.get(k).getId() == idPartita) {
+            for (int k = 0; k < tablePartite.getItems().size(); k++) {
+                if (tablePartite.getItems().get(k).getId() == idPartita) {
                     idx = k; break;
                 }
             }
             if (idx >= 0) {
-                PartitaRow old = tableData.get(idx);
-                tableData.set(idx, new PartitaRow(idPartita, old.getAvversario(), "Terminata", "Avversario disconnesso"));
+                PartitaRow old = tablePartite.getItems().get(idx);
+                tablePartite.getItems().set(idx, new PartitaRow(idPartita, old.getAvversario(), "Terminata", "Avversario disconnesso"));
             } else {
-                tableData.add(new PartitaRow(idPartita, "?", "Terminata", "Avversario disconnesso"));
+                tablePartite.getItems().add(new PartitaRow(idPartita, "?", "TERMINATA", "Avversario disconnesso"));
             }
 
         } else if (msg.startsWith("STATO_PARTITA")) {
             String[] tokens = msg.split("\\s+");
             if (tokens.length < 7) return;
 
-            // atteso: 0:STATO_PARTITA 1:id 2:stato 3:scacchiera 4:turno= 5:proprietario= 6:ospite=
             int idPartita = Integer.parseInt(tokens[1]);
             String stato = tokens[2];
             String proprietario = tokens[5].split("=")[1];
@@ -249,29 +253,48 @@ public class HomeController {
             String avversario = me.equals(proprietario) ? ospite : proprietario;
 
             int idx = -1;
-            for (int k = 0; k < tableData.size(); k++) {
-                if (tableData.get(k).getId() == idPartita) { idx = k; break; }
+            for (int k = 0; k < tablePartite.getItems().size(); k++) {
+                if (tablePartite.getItems().get(k).getId() == idPartita) { idx = k; break; }
             }
 
             PartitaRow row = new PartitaRow(idPartita, avversario, stato, "-");
-            if (idx >= 0) tableData.set(idx, row);
-            else tableData.add(row);
+            if (idx >= 0) tablePartite.getItems().set(idx, row);
+            else tablePartite.getItems().add(row);
         }
         createNew.setDisable(false);
         partiteDisponibili.setDisable(false);
     }
 
     private void initializeTableView() {
-        tablePartite.setItems(tableData);
+        tablePartite.setItems(FXCollections.observableArrayList());
         tablePartite.setPlaceholder(new Label("Nessuna partita"));
 
-        // Colonne (usa gli fx:id che hai messo in FXML)
         columAvversario.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getAvversario()));
+                new SimpleStringProperty(c.getValue()!= null ? c.getValue().getAvversario() : ""));
         columStato.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getStato()));
+                new SimpleStringProperty(c.getValue()!= null ? c.getValue().getStato() : ""));
         coulmRisultato.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getRisultato()));
+                new SimpleStringProperty(c.getValue()!= null ? c.getValue().getRisultato() : ""));
+
+        columAzione.setCellFactory(col -> new TableCell<PartitaRow, Void>() {
+            private final Button actionButton = new Button("Continua");
+            {
+                actionButton.setOnAction(e -> {
+                    PartitaRow partita = getTableView().getItems().get(getIndex());
+                    System.out.println("[DEBUG] Bottone premuto per partita ID=" + partita.getId());
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(actionButton);
+                }
+            }
+        });
     }
 
     public static final class PartitaRow {
