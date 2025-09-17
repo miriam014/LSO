@@ -80,3 +80,22 @@
     -fx-background-color: #B85B55;
 }
 
+/* ---------- Stile dei bottoni normali ---------- */
+.button {
+    -fx-background-color: #9C3B35;   /* Sfondo rosso */
+    -fx-text-fill: white;            /* Testo bianco */
+    -fx-background-radius: 5;        /* Angoli arrotondati */
+    -fx-padding: 5px 10px;           /* Spaziatura interna */
+    -fx-cursor: hand;                /* Puntatore a mano al passaggio */
+}
+
+/* Hover - schiarisce il bottone */
+.button:hover {
+    -fx-background-color: #B85B55;   /* Sfondo più chiaro */
+}
+
+/* Stato "pressed" (quando cliccato) */
+.button:pressed {
+    -fx-background-color: #7A2C28;   /* Sfondo più scuro */
+}
+
