@@ -5,6 +5,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.GridPane;
 import tris.Main;
 import tris.MessaggiBuilder;
 import tris.Sessione;
@@ -24,6 +25,7 @@ public class PartitaController {
     @FXML private Button btn21;
     @FXML private Button btn22;
 
+    @FXML private GridPane trisGrid;
 
     @FXML
     public void initialize() {
@@ -32,15 +34,22 @@ public class PartitaController {
         replayButton.setManaged(false);
 
         Main.getNetClient().setOnMessage(msg -> {
-            Platform.runLater(() -> handleServerMessage(msg));
+            Platform.runLater(() -> handleServerMessage(msg.trim()));
         });
     }
 
-    //Questo metodo serve a mandare al server la mossa scelta dall’utente
+    // Mando al server la mossa scelta dall’utente
     @FXML
     private void handleMove(ActionEvent e) {
         Button btn = (Button) e.getSource();
-        String id = btn.getId();
+
+        // Se la cella è già occupata, non mando nulla
+        if (!btn.getText().isEmpty()) {
+            System.out.println("[DEBUG] Cella già occupata, ignoro click");
+            return;
+        }
+
+        String id = btn.getId(); // es: "btn01"
         int row = Character.getNumericValue(id.charAt(3));
         int col = Character.getNumericValue(id.charAt(4));
         int cella = row * 3 + col;
@@ -48,19 +57,26 @@ public class PartitaController {
         String utente = Sessione.getUsername();
         int idPartita = Sessione.getIdPartita();
 
+        System.out.println("[DEBUG] Invio mossa: " + utente + " cella=" + cella);
         Main.getNetClient().send(MessaggiBuilder.mossa(utente, idPartita, cella));
     }
 
     private void handleServerMessage(String msg) {
         System.out.println("[PartitaController] Ricevuto: " + msg);
 
-        if(msg.startsWith("MOSSA_OK")) {
+        if (msg.startsWith("MOSSA_OK")) {
+            aggiornaScacchiera(msg);
+
+        } else if (msg.startsWith("STATO_PARTITA")) {
             aggiornaScacchiera(msg);
 
         } else if (msg.startsWith("PARTITA_FINITA")) {
-            String vincitore = msg.split("vincitore=")[1];
+            String vincitore = "";
+            if (msg.contains("vincitore=")) {
+                vincitore = msg.split("vincitore=")[1].trim();
+            }
             String me = Sessione.getUsername();
-            if ("pareggio" .equals(vincitore)) {
+            if ("pareggio".equalsIgnoreCase(vincitore)) {
                 labelResult.setText("Pareggio!");
             } else if (vincitore.equals(me)) {
                 labelResult.setText("Hai vinto!");
@@ -70,14 +86,19 @@ public class PartitaController {
             labelResult.setVisible(true);
             replayButton.setVisible(true);
             replayButton.setManaged(true);
+            trisGrid.setDisable(true); // blocco griglia a fine partita
 
         } else if (msg.startsWith("REMATCH_STATO")) {
-            if(msg.contains("true true")) {
+            if (msg.contains("pronto_proprietario=true") && msg.contains("pronto_ospite=true")) {
                 resetBoard();
                 labelResult.setVisible(false);
                 replayButton.setVisible(false);
                 replayButton.setManaged(false);
+                trisGrid.setDisable(false); // nuova partita attiva
             }
+
+        } else if (msg.startsWith("ERRORE")) {
+            System.out.println("[Server ERRORE] " + msg);
         }
     }
 
@@ -87,16 +108,22 @@ public class PartitaController {
         btn20.setText(""); btn21.setText(""); btn22.setText("");
     }
 
-
     private void aggiornaScacchiera(String msg) {
-        // es: MOSSA_OK partita=1 scacchiera=XO..O.... prossimo_turno=Mario
-        String[] tokens = msg.split("\\s+"); //divide la stringa in pezzi separati da spazi bianchi
+        // Esempio: MOSSA_OK partita=1 scacchiera=XO..O.... prossimo_turno=Mario
+        String[] tokens = msg.split("\\s+");
         String scacchiera = "";
+        String turno = "";
+
         for (String t : tokens) {
             if (t.startsWith("scacchiera=")) {
                 scacchiera = t.substring("scacchiera=".length());
             }
+            if (t.startsWith("prossimo_turno=")) {
+                turno = t.substring("prossimo_turno=".length());
+            }
         }
+
+        System.out.println("[DEBUG] Aggiorna scacchiera: " + scacchiera + " turno=" + turno);
 
         if (scacchiera.length() == 9) {
             btn00.setText(charToText(scacchiera.charAt(0)));
@@ -109,6 +136,13 @@ public class PartitaController {
             btn21.setText(charToText(scacchiera.charAt(7)));
             btn22.setText(charToText(scacchiera.charAt(8)));
         }
+
+        // Abilita/disabilita la griglia in base al turno
+        if (!turno.isEmpty()) {
+            String me = Sessione.getUsername();
+            boolean myTurn = turno.equals(me);
+            trisGrid.setDisable(!myTurn);
+        }
     }
 
     private String charToText(char c) {
@@ -120,10 +154,8 @@ public class PartitaController {
         String utente = Sessione.getUsername();
         int idPartita = Sessione.getIdPartita();
         Main.getNetClient().send(MessaggiBuilder.rematch(utente, idPartita, true));
-
         labelResult.setText("In attesa dell’altro giocatore...");
     }
-
 
     public void backHome(ActionEvent actionEvent) {
         try {
