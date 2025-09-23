@@ -70,6 +70,24 @@ public class PartitaController {
         } else if (msg.startsWith("STATO_PARTITA")) {
             aggiornaScacchiera(msg);
 
+            if (msg.contains("IN_CORSO")) {
+                // Confermo che la partita è iniziata
+                labelResult.setVisible(false);
+                replayButton.setVisible(false);
+                replayButton.setManaged(false);
+                trisGrid.setDisable(false);
+
+                // Se non hai già salvato l'idPartita, fallo ora
+                try {
+                    String[] tokens = msg.split("\\s+");
+                    int id = Integer.parseInt(tokens[1]);
+                    Sessione.setIdPartita(id);
+                    System.out.println("[DEBUG] Entrata in partita IN_CORSO con id=" + id);
+                } catch (Exception e) {
+                    System.out.println("[DEBUG] Non riesco a parsare l'id della partita da: " + msg);
+                }
+            }
+
         } else if (msg.startsWith("PARTITA_FINITA")) {
             String vincitore = "";
             if (msg.contains("vincitore=")) {
@@ -109,7 +127,6 @@ public class PartitaController {
     }
 
     private void aggiornaScacchiera(String msg) {
-        // Esempio: MOSSA_OK partita=1 scacchiera=XO..O.... prossimo_turno=Mario
         String[] tokens = msg.split("\\s+");
         String scacchiera = "";
         String turno = "";
@@ -117,9 +134,15 @@ public class PartitaController {
         for (String t : tokens) {
             if (t.startsWith("scacchiera=")) {
                 scacchiera = t.substring("scacchiera=".length());
+            } else if (t.matches("[XO.]{9}")) {
+                // caso STATO_PARTITA: scacchiera senza prefisso
+                scacchiera = t;
             }
+
             if (t.startsWith("prossimo_turno=")) {
                 turno = t.substring("prossimo_turno=".length());
+            } else if (t.startsWith("turno=")) {
+                turno = t.substring("turno=".length());
             }
         }
 
@@ -142,8 +165,10 @@ public class PartitaController {
             String me = Sessione.getUsername();
             boolean myTurn = turno.equals(me);
             trisGrid.setDisable(!myTurn);
+            System.out.println("[DEBUG] È il turno di " + turno + " (io=" + me + ")");
         }
     }
+
 
     private String charToText(char c) {
         return (c == '.' ? "" : String.valueOf(c));
