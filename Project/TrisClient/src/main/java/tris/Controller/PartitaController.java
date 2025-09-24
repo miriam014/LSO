@@ -27,6 +27,8 @@ public class PartitaController {
 
     @FXML private GridPane trisGrid;
 
+    private String lastScacchiera = ".........";
+
     @FXML
     public void initialize() {
         labelResult.setVisible(false);
@@ -41,6 +43,7 @@ public class PartitaController {
     // Mando al server la mossa scelta dall’utente
     @FXML
     private void handleMove(ActionEvent e) {
+        
         Button btn = (Button) e.getSource();
 
         // Se la cella è già occupata, non mando nulla
@@ -68,6 +71,7 @@ public class PartitaController {
             aggiornaScacchiera(msg);
 
         } else if (msg.startsWith("STATO_PARTITA")) {
+            // aggiorna subito la scacchiera
             aggiornaScacchiera(msg);
 
             if (msg.contains("IN_CORSO")) {
@@ -75,7 +79,6 @@ public class PartitaController {
                 labelResult.setVisible(false);
                 replayButton.setVisible(false);
                 replayButton.setManaged(false);
-                trisGrid.setDisable(false);
 
                 // Se non hai già salvato l'idPartita, fallo ora
                 try {
@@ -86,6 +89,9 @@ public class PartitaController {
                 } catch (Exception e) {
                     System.out.println("[DEBUG] Non riesco a parsare l'id della partita da: " + msg);
                 }
+
+                // 🔹 Forza di nuovo la sincronizzazione del turno al primo STATO_PARTITA
+                aggiornaScacchiera(msg);
             }
 
         } else if (msg.startsWith("PARTITA_FINITA")) {
@@ -120,6 +126,7 @@ public class PartitaController {
         }
     }
 
+
     private void resetBoard() {
         btn00.setText(""); btn01.setText(""); btn02.setText("");
         btn10.setText(""); btn11.setText(""); btn12.setText("");
@@ -147,8 +154,16 @@ public class PartitaController {
         }
 
         System.out.println("[DEBUG] Aggiorna scacchiera: " + scacchiera + " turno=" + turno);
+        // Abilita/disabilita la griglia in base al turno
+        if (!turno.isEmpty()) {
+            String me = Sessione.getUsername();
+            boolean myTurn = turno.equals(me);
+            trisGrid.setDisable(!myTurn);
+            System.out.println("[DEBUG] È il turno di " + turno + " (io=" + me + ")");
+        }
 
-        if (scacchiera.length() == 9) {
+        // aggiorno solo se la scacchiera è cambiata
+        if (scacchiera.length() == 9 && !scacchiera.equals(lastScacchiera)) {
             btn00.setText(charToText(scacchiera.charAt(0)));
             btn01.setText(charToText(scacchiera.charAt(1)));
             btn02.setText(charToText(scacchiera.charAt(2)));
@@ -158,14 +173,8 @@ public class PartitaController {
             btn20.setText(charToText(scacchiera.charAt(6)));
             btn21.setText(charToText(scacchiera.charAt(7)));
             btn22.setText(charToText(scacchiera.charAt(8)));
-        }
 
-        // Abilita/disabilita la griglia in base al turno
-        if (!turno.isEmpty()) {
-            String me = Sessione.getUsername();
-            boolean myTurn = turno.equals(me);
-            trisGrid.setDisable(!myTurn);
-            System.out.println("[DEBUG] È il turno di " + turno + " (io=" + me + ")");
+            lastScacchiera = scacchiera; // aggiorno la memoria
         }
     }
 

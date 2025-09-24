@@ -314,8 +314,11 @@ void cmd_mossa(int sock, const char *utente, int id_partita, int cella){
         pthread_mutex_unlock(&g_lock);
 
         char buf[256];
-        snprintf(buf,sizeof(buf), "PARTITA_FINITA id_partita=%d vincitore=%s",
-                 id_partita, (esito=='='?"pareggio": (esito=='X'?p->proprietario:p->ospite)));
+        snprintf(buf,sizeof(buf),
+            "PARTITA_FINITA id_partita=%d scacchiera=%s vincitore=%s",
+            id_partita,
+            p->scacchiera,
+            (esito=='='?"pareggio": (esito=='X'?p->proprietario:p->ospite)));
         invia_ai_giocatori(p, buf);
 
         // aggiorno le mie partite di entrambi
