@@ -34,4 +34,13 @@ public class MessaggiBuilder {
     public static String rematch(String utente, int idPartita, boolean voglio){
         return "REMATCH " + utente + " " + idPartita + " " + (voglio? "1":"0");
     }
+
+    public static String rematchRichiesta(String utente, int idPartita) {
+        return "REMATCH_RICHIESTA " + utente + " " + idPartita;
+    }
+
+    public static String rematchRisposta(String utente, int idPartita, boolean accetta) {
+        return "REMATCH_RISPOSTA " + utente + " " + idPartita + " " + (accetta ? 1 : 0);
+    }
+
 }

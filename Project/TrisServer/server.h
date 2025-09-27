@@ -61,7 +61,8 @@ void cmd_annulla_partita(int sock, int id_partita);
 void cmd_entra_richiesta(int sock, const char *utente, int id_partita);
 void cmd_entra_risposta(int sock, const char *ownerUser, int id_partita, int accetta, const char *ospite);
 void cmd_mossa(int sock, const char *utente, int id_partita, int cella);
-void cmd_rematch(int sock, const char *utente, int id_partita, int voglio);
+void cmd_rematch_richiesta(int sock, const char *utente, int id_partita);
+void cmd_rematch_risposta(int sock, const char *utente, int id_partita, int accetta);
 
 // Gioco / broadcast
 void azzera_scacchiera(Partita *p);

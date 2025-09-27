@@ -86,7 +86,7 @@ void *handle_client(void *arg) {
 
         // --- PARSING TESTUALE ---
         char cmd[32], utente[32], nome[64], ospite[32];
-        int id=0, cella=-1, accetta=0, voglio=0;
+        int id=0, cella=-1, accetta=0, voglio=0, risposta=0;
 
         // sscanf legge dal buffer secondo il formato e %31s legge una sftringa lunga fino a 31 carateri e la mette poi nella variabile utente
         if (sscanf(buffer, "CREA_PARTITA %31s", utente) == 1) {
@@ -110,9 +110,13 @@ void *handle_client(void *arg) {
         else if (sscanf(buffer, "MOSSA %31s %d %d", utente, &id, &cella) == 3) {
             cmd_mossa(cSocket, utente, id, cella);
         }
-        else if (sscanf(buffer, "REMATCH %31s %d %d", utente, &id, &voglio) == 3) {
-            cmd_rematch(cSocket, utente, id, voglio);
-        } else {
+        else if (sscanf(buffer, "REMATCH_RICHIESTA %31s %d", utente, &id) == 2) {
+        cmd_rematch_richiesta(cSocket, utente, id);
+        }
+        else if (sscanf(buffer, "REMATCH_RISPOSTA %31s %d %d", utente, &id, &accetta) == 3) {
+            cmd_rematch_risposta(cSocket, utente, id, accetta);
+        }
+        else {
             send_msg(cSocket, "ERRORE comando non riconosciuto");
         }
     }

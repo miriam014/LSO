@@ -3,8 +3,7 @@ package tris.Controller;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import tris.Main;
 import tris.MessaggiBuilder;
@@ -124,6 +123,49 @@ public class PartitaController {
         } else if (msg.startsWith("ERRORE")) {
             System.out.println("[Server ERRORE] " + msg);
         }
+        else if(msg.startsWith("REMATCH_RICHIESTA")) {
+            String[] parts = msg.split("\\s+");
+            if (parts.length < 3) return;
+
+            String avversario = parts[1];
+            int idPartita = Integer.parseInt(parts[2]);
+
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Richiesta di rivincita");
+            alert.setHeaderText(null);
+            alert.setContentText(avversario + " vuole fare una rivincita. Accetti?");
+            ButtonType accettaBtn = new ButtonType("Accetta");
+            ButtonType rifiutaBtn = new ButtonType("Rifiuta", ButtonBar.ButtonData.CANCEL_CLOSE);
+            alert.getButtonTypes().setAll(accettaBtn, rifiutaBtn);
+
+            alert.showAndWait().ifPresent(response -> {
+                boolean accetta = (response == accettaBtn);
+                Main.getNetClient().send(MessaggiBuilder.rematchRisposta(Sessione.getUsername(), idPartita, accetta));
+                if (!accetta) {
+                    try {
+                        Main.setRoot("home.fxml"); // Torna subito alla home
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+        else if (msg.startsWith("REMATCH_ESITO")) {
+            // Messaggio: REMATCH_ESITO accetta=true/false
+            if (msg.contains("accetta=true")) {
+                resetBoard();
+                labelResult.setVisible(false);
+                replayButton.setVisible(false);
+                replayButton.setManaged(false);
+                trisGrid.setDisable(false); // nuova partita attiva
+            } else {
+                try {
+                    Main.setRoot("home.fxml"); // L’altro ha rifiutato
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
 
@@ -187,7 +229,8 @@ public class PartitaController {
     private void replayGame() {
         String utente = Sessione.getUsername();
         int idPartita = Sessione.getIdPartita();
-        Main.getNetClient().send(MessaggiBuilder.rematch(utente, idPartita, true));
+
+        Main.getNetClient().send(MessaggiBuilder.rematchRichiesta(utente, idPartita));
         labelResult.setText("In attesa dell’altro giocatore...");
     }
 

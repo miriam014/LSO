@@ -328,32 +328,56 @@ void cmd_mossa(int sock, const char *utente, int id_partita, int cella){
     pthread_mutex_unlock(&g_lock);
 }
 
-// comando per richiedere una rivincita dopo che la partita è terminata
-void cmd_rematch(int sock, const char *utente, int id_partita, int voglio){
-    pthread_mutex_lock(&g_lock);
-    Partita *p = trova_partita(id_partita);
-    if (!p){ pthread_mutex_unlock(&g_lock); send_msg(sock,"ERRORE Partita non trovata"); return; }
-    if (p->stato!=ST_TERMINATA){ pthread_mutex_unlock(&g_lock); send_msg(sock,"ERRORE Partita non terminata"); return; }
-
-    if (strcmp(utente,p->proprietario)==0) p->pronto_proprietario = voglio?1:0;
-    else if (strcmp(utente,p->ospite)==0)  p->pronto_ospite = voglio?1:0;
-    else { pthread_mutex_unlock(&g_lock); send_msg(sock,"ERRORE Non fai parte della partita"); return; }
-
-    int prp=p->pronto_proprietario, pro=p->pronto_ospite;
-    pthread_mutex_unlock(&g_lock);
-
-    char buf[256];
-    snprintf(buf,sizeof(buf), "REMATCH_STATO id_partita=%d pronto_proprietario=%s pronto_ospite=%s",
-             id_partita, prp?"true":"false", pro?"true":"false");
-    invia_ai_giocatori(p, buf);
-
-    if (prp && pro){
+    // comando per richiedere una rivincita dopo che la partita è terminata
+    // Richiesta di rematch
+    void cmd_rematch_richiesta(int sock, const char *utente, int id_partita) {
         pthread_mutex_lock(&g_lock);
-        p->stato = ST_IN_CORSO;
-        azzera_scacchiera(p);
-        snprintf(p->turno,sizeof(p->turno), "%s", p->proprietario);
-        p->pronto_proprietario = p->pronto_ospite = 0;
+        Partita *p = trova_partita(id_partita);
+        if (!p || p->stato != ST_TERMINATA) {
+            pthread_mutex_unlock(&g_lock);
+            send_msg(sock, "ERRORE Partita non disponibile per rematch");
+            return;
+        }
+        int avversario_sock = (sock == p->proprietario_sock) ? p->ospite_sock : p->proprietario_sock;
         pthread_mutex_unlock(&g_lock);
+
+        if (avversario_sock > 0) {
+            char buf[256];
+            snprintf(buf, sizeof(buf), "REMATCH_RICHIESTA %s %d", utente, id_partita);
+            send_msg(avversario_sock, buf);
+        }
+    }
+
+    // Risposta al rematch
+    void cmd_rematch_risposta(int sock, const char *utente, int id_partita, int accetta) {
+        pthread_mutex_lock(&g_lock);
+        Partita *p = trova_partita(id_partita);
+        if (!p) {
+            pthread_mutex_unlock(&g_lock);
+            send_msg(sock, "ERRORE Partita non trovata");
+            return;
+        }
+
+        int owner_sock = p->proprietario_sock;
+        int guest_sock = p->ospite_sock;
+
+        if (!accetta) {
+            pthread_mutex_unlock(&g_lock);
+            if (owner_sock > 0) send_msg(owner_sock, "REMATCH_ESITO accetta=false");
+            if (guest_sock > 0) send_msg(guest_sock, "REMATCH_ESITO accetta=false");
+            return;
+        }
+
+        // entrambi accettano → resetto
+        azzera_scacchiera(p);
+        snprintf(p->turno, sizeof(p->turno), "%s", p->proprietario);
+        p->stato = ST_IN_CORSO;
+        pthread_mutex_unlock(&g_lock);
+
+        if (owner_sock > 0) send_msg(owner_sock, "REMATCH_ESITO accetta=true");
+        if (guest_sock > 0) send_msg(guest_sock, "REMATCH_ESITO accetta=true");
+
         invia_stato_partita(p);
     }
-}
+
+
