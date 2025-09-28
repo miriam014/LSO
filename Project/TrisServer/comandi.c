@@ -381,4 +381,15 @@ void cmd_mossa(int sock, const char *utente, int id_partita, int cella){
         invia_stato_partita(p);
     }
 
+    void cmd_stato_partita(int sock, int id_partita) {
+        pthread_mutex_lock(&g_lock);
+        Partita *p = trova_partita(id_partita);
+        if (p) {
+            invia_stato_partita(p);
+        } else {
+            send_msg(sock, "ERRORE Partita non trovata");
+        }
+        pthread_mutex_unlock(&g_lock);
+    }
+
 

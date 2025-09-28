@@ -34,6 +34,12 @@ public class HomeController {
         initializeTableView();
         Main.getNetClient().send(MessaggiBuilder.miePartite());
 
+        //  Se ho già uno username salvato in Sessione, lo reinserisco nella TextField
+        String savedUser = Sessione.getUsername();
+        if (savedUser != null && !savedUser.isEmpty()) {
+            InsertName.setText(savedUser);
+        }
+
         InsertName.textProperty().addListener((obs, vecchioValore, nuovoValore) -> {
             Sessione.setUsername(nuovoValore.trim());
         });
@@ -84,7 +90,7 @@ public class HomeController {
 
     private void handleServerMessage(String msg) {
         msg = msg.trim();
-        System.out.println("[DEBUG] Ricevuto: " + msg);
+        System.out.println("[DEBUG][Home] Ricevuto: " + msg);
 
         if (msg.startsWith("ATTESA_AVVERSARIO")) {
             popupLabel.setText("In attesa di un avversario...");
@@ -98,10 +104,10 @@ public class HomeController {
 
         } else if (msg.startsWith("LISTA_ATTESA")) {
             partiteDisponibili.getItems().clear();
-            String[] righe = msg.split("\n"); // per riga siccome i messaggi vengono separati per riga dal server
+            String[] righe = msg.split("\n");
             String me = Sessione.getUsername() == null ? "" : Sessione.getUsername();
 
-            for (int i = 1; i < righe.length; i++) { // salto la prima riga "LISTA_ATTESA"
+            for (int i = 1; i < righe.length; i++) {
                 String riga = righe[i].trim();
                 if (riga.isEmpty()) continue;
 
@@ -159,8 +165,8 @@ public class HomeController {
                 }
                 items.add(new PartitaRow(idPartita, avversario, stato, risultato));
             }
-            System.out.println("[DEBUG] Dopo parsing, table size: " + tablePartite.getItems().size());
             tablePartite.refresh();
+            System.out.println("[DEBUG][Home] Tabella aggiornata: " + items.size() + " partite");
 
         } else if (msg.startsWith("ENTRA_RICHIESTA_INVIATA")) {
             popupLabel.setText("Richiesta inviata. Attendi la risposta del proprietario...");
@@ -169,15 +175,12 @@ public class HomeController {
             createNew.setDisable(true);
 
         } else if (msg.startsWith("ENTRA_RICHIESTA")) {
-            if (waitNoOpponent != null) { waitNoOpponent.stop(); waitNoOpponent = null; }
-            if (hidePopupDelay != null) { hidePopupDelay.stop(); hidePopupDelay = null; }
             String[] parts = msg.split("\\s+");
             if (parts.length < 3) return;
 
             String ospite = parts[1];
             int idPartita = Integer.parseInt(parts[2]);
 
-            // Finestra di conferma
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Richiesta di partecipazione");
             alert.setHeaderText(null);
@@ -193,20 +196,14 @@ public class HomeController {
                 );
                 if (accetta) {
                     Sessione.setIdPartita(idPartita);
-                    if (!navigated) {
-                        navigated = true;
-                        popupAttesa.setVisible(false);
-                        Sessione.setSonoProprietario(true);
-                        try { Main.setRoot("partita.fxml"); } catch (Exception e) { e.printStackTrace(); }
-                    }
+                    Sessione.setSonoProprietario(true);
+                    //  la scena la cambio SOLO qui perché l'utente ha scelto
+                    try { Main.setRoot("partita.fxml"); } catch (Exception e) { e.printStackTrace(); }
                 }
             });
 
         } else if (msg.startsWith("ENTRA_ESITO")) {
-            if (waitNoOpponent != null) { waitNoOpponent.stop(); waitNoOpponent = null; }
-            if (hidePopupDelay != null) { hidePopupDelay.stop(); hidePopupDelay = null; }
-
-            if (msg.contains("accetta=true")){
+            if (msg.contains("accetta=true")) {
                 Integer id = null;
                 for (String tok : msg.split("\\s+")) {
                     if (tok.startsWith("partita=")) {
@@ -217,12 +214,11 @@ public class HomeController {
                     Sessione.setIdPartita(id);
                     Sessione.setSonoProprietario(false);
                     System.out.println("[DEBUG][Home] set idPartita=" + id + " da ENTRA_ESITO");
-                } else {
-                    System.out.println("[DEBUG][Home] ENTRA_ESITO senza id, attendo STATO_PARTITA");
                 }
                 popupAttesa.setVisible(false);
                 Main.getNetClient().send(MessaggiBuilder.miePartite());
-                try{ Main.setRoot("partita.fxml"); } catch (Exception e){ e.printStackTrace(); }
+                // la scena la cambio SOLO qui perché l'utente ha accettato
+                try { Main.setRoot("partita.fxml"); } catch (Exception e){ e.printStackTrace(); }
             } else {
                 popupLabel.setText("Richiesta rifiutata dal proprietario.");
                 popupAttesa.setVisible(true);
@@ -235,28 +231,22 @@ public class HomeController {
                 });
                 wait.play();
             }
-        }
-        else if (msg.startsWith("AVVERSARIO_DISCONNESSO")) {
-            String[] parts = msg.split("\\s+");
-            int idPartita = Integer.parseInt(parts[1].split("=")[1]);
+
+        } else if (msg.startsWith("AVVERSARIO_DISCONNESSO")) {
+            int idPartita = Integer.parseInt(msg.split("\\s+")[1].split("=")[1]);
             popupLabel.setText("Il tuo avversario si è disconnesso (partita " + idPartita + ").");
             popupAttesa.setVisible(true);
 
-            // aggiorna tabella -> stato TERMINATA
-            int idx = -1;
+            // aggiorna tabella, NON cambiare scena
             for (int k = 0; k < tablePartite.getItems().size(); k++) {
                 if (tablePartite.getItems().get(k).getId() == idPartita) {
-                    idx = k; break;
+                    PartitaRow old = tablePartite.getItems().get(k);
+                    tablePartite.getItems().set(k, new PartitaRow(idPartita, old.getAvversario(), "TERMINATA", "Avversario disconnesso"));
                 }
-            }
-            if (idx >= 0) {
-                PartitaRow old = tablePartite.getItems().get(idx);
-                tablePartite.getItems().set(idx, new PartitaRow(idPartita, old.getAvversario(), "Terminata", "Avversario disconnesso"));
-            } else {
-                tablePartite.getItems().add(new PartitaRow(idPartita, "?", "TERMINATA", "Avversario disconnesso"));
             }
 
         } else if (msg.startsWith("STATO_PARTITA")) {
+            // aggiorniamo solo la tabella, non la GUI della partita
             String[] tokens = msg.split("\\s+");
             if (tokens.length < 7) return;
 
@@ -275,10 +265,13 @@ public class HomeController {
             PartitaRow row = new PartitaRow(idPartita, avversario, stato, "-");
             if (idx >= 0) tablePartite.getItems().set(idx, row);
             else tablePartite.getItems().add(row);
+            tablePartite.refresh();
         }
+
         createNew.setDisable(false);
         partiteDisponibili.setDisable(false);
     }
+
 
     private void initializeTableView() {
         tablePartite.setItems(FXCollections.observableArrayList());

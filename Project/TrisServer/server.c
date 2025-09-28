@@ -116,6 +116,9 @@ void *handle_client(void *arg) {
         else if (sscanf(buffer, "REMATCH_RISPOSTA %31s %d %d", utente, &id, &accetta) == 3) {
             cmd_rematch_risposta(cSocket, utente, id, accetta);
         }
+        else if (sscanf(buffer, "STATO_PARTITA %d", &id) == 1) {
+            cmd_stato_partita(cSocket, id);
+        }
         else {
             send_msg(cSocket, "ERRORE comando non riconosciuto");
         }

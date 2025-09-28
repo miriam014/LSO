@@ -37,6 +37,8 @@ public class PartitaController {
         Main.getNetClient().setOnMessage(msg -> {
             Platform.runLater(() -> handleServerMessage(msg.trim()));
         });
+
+        Main.getNetClient().send("STATO_PARTITA " + Sessione.getIdPartita());
     }
 
     // Mando al server la mossa scelta dall’utente
@@ -66,20 +68,52 @@ public class PartitaController {
     private void handleServerMessage(String msg) {
         System.out.println("[PartitaController] Ricevuto: " + msg);
 
+        // === MOSSA_OK ===
         if (msg.startsWith("MOSSA_OK")) {
+            int idPartita = -1;
+            for (String tok : msg.split("\\s+")) {
+                if (tok.startsWith("partita=")) {
+                    idPartita = Integer.parseInt(tok.substring("partita=".length()));
+                }
+            }
+            if (idPartita != Sessione.getIdPartita()) {
+                System.out.println("[DEBUG] Ignoro MOSSA_OK di altra partita " + idPartita);
+                return;
+            }
             aggiornaScacchiera(msg);
+        }
 
-        } else if (msg.startsWith("STATO_PARTITA")) {
+        // === STATO_PARTITA ===
+        else if (msg.startsWith("STATO_PARTITA")) {
+            String[] tokens = msg.split("\\s+");
+            int idPartita = Integer.parseInt(tokens[1]);
+            if (idPartita != Sessione.getIdPartita()) {
+                System.out.println("[DEBUG] Ignoro STATO_PARTITA di altra partita " + idPartita);
+                return;
+            }
+
             aggiornaScacchiera(msg);
 
             if (msg.contains("IN_CORSO")) {
-                // Confermo che la partita è iniziata
                 labelResult.setVisible(false);
                 replayButton.setVisible(false);
                 replayButton.setManaged(false);
             }
+        }
 
-        } else if (msg.startsWith("PARTITA_FINITA")) {
+        // === PARTITA_FINITA ===
+        else if (msg.startsWith("PARTITA_FINITA")) {
+            int idPartita = -1;
+            for (String tok : msg.split("\\s+")) {
+                if (tok.startsWith("id_partita=")) {
+                    idPartita = Integer.parseInt(tok.substring("id_partita=".length()));
+                }
+            }
+            if (idPartita != Sessione.getIdPartita()) {
+                System.out.println("[DEBUG] Ignoro PARTITA_FINITA di altra partita " + idPartita);
+                return;
+            }
+
             String vincitore = "";
             if (msg.contains("vincitore=")) {
                 vincitore = msg.split("vincitore=")[1].trim();
@@ -95,27 +129,39 @@ public class PartitaController {
             labelResult.setVisible(true);
             replayButton.setVisible(true);
             replayButton.setManaged(true);
-            trisGrid.setDisable(true); // blocco griglia a fine partita
-
-        } else if (msg.startsWith("REMATCH_STATO")) {
-            if (msg.contains("pronto_proprietario=true") && msg.contains("pronto_ospite=true")) {
-                resetBoard();
-                labelResult.setVisible(false);
-                replayButton.setVisible(false);
-                replayButton.setManaged(false);
-                trisGrid.setDisable(false); // nuova partita attiva
-            }
-
-        } else if (msg.startsWith("ERRORE")) {
-            System.out.println("[Server ERRORE] " + msg);
+            trisGrid.setDisable(true);
         }
 
-        else if(msg.startsWith("REMATCH_RICHIESTA")) {
+        // === AVVERSARIO_DISCONNESSO ===
+        else if (msg.startsWith("AVVERSARIO_DISCONNESSO")) {
+            int idPartita = -1;
+            for (String tok : msg.split("\\s+")) {
+                if (tok.startsWith("partita=")) {
+                    idPartita = Integer.parseInt(tok.substring("partita=".length()));
+                }
+            }
+            if (idPartita != Sessione.getIdPartita()) {
+                System.out.println("[DEBUG] Ignoro AVVERSARIO_DISCONNESSO di altra partita " + idPartita);
+                return;
+            }
+
+            labelResult.setText("Il tuo avversario si è disconnesso.");
+            labelResult.setVisible(true);
+            replayButton.setVisible(false);
+            trisGrid.setDisable(true);
+        }
+
+        // === REMATCH_RICHIESTA ===
+        else if (msg.startsWith("REMATCH_RICHIESTA")) {
             String[] parts = msg.split("\\s+");
             if (parts.length < 3) return;
 
             String avversario = parts[1];
             int idPartita = Integer.parseInt(parts[2]);
+            if (idPartita != Sessione.getIdPartita()) {
+                System.out.println("[DEBUG] Ignoro REMATCH_RICHIESTA di altra partita " + idPartita);
+                return;
+            }
 
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Richiesta di rivincita");
@@ -130,28 +176,35 @@ public class PartitaController {
                 Main.getNetClient().send(MessaggiBuilder.rematchRisposta(Sessione.getUsername(), idPartita, accetta));
                 if (!accetta) {
                     try {
-                        Main.setRoot("home.fxml"); // Torna subito alla home
+                        Main.setRoot("home.fxml");
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
             });
         }
+
+        // === REMATCH_ESITO ===
         else if (msg.startsWith("REMATCH_ESITO")) {
-            // Messaggio: REMATCH_ESITO accetta=true/false
-            if (msg.contains("accetta=true")) {
-                resetBoard();
-                labelResult.setVisible(false);
-                replayButton.setVisible(false);
-                replayButton.setManaged(false);
-                trisGrid.setDisable(false); // nuova partita attiva
-            } else {
+            int idPartita = Sessione.getIdPartita(); // il server non manda sempre id, ma noi sappiamo quello corrente
+            if (!msg.contains("accetta=true")) {
                 try {
-                    Main.setRoot("home.fxml"); // L’altro ha rifiutato
+                    Main.setRoot("home.fxml");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                return;
             }
+            resetBoard();
+            labelResult.setVisible(false);
+            replayButton.setVisible(false);
+            replayButton.setManaged(false);
+            trisGrid.setDisable(false);
+        }
+
+        // === ERRORI ===
+        else if (msg.startsWith("ERRORE")) {
+            System.out.println("[Server ERRORE] " + msg);
         }
     }
 

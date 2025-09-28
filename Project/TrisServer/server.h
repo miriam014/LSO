@@ -69,5 +69,7 @@ void azzera_scacchiera(Partita *p);
 char esito_scacchiera(const char b[10]);
 void invia_a_tutti(const char *msg, int escludi_sock);
 void invia_stato_partita(Partita *p);
+void cmd_stato_partita(int sock, int id_partita);
+
 
 #endif
