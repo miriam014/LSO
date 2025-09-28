@@ -22,7 +22,6 @@ public class MessaggiBuilder {
         return "ENTRA_RICHIESTA " + utente + " " + idPartita;
     }
 
-    // NB: booleans come STRINGHE ("true"/"false") per il tuo router attuale
     public static String entraRisposta(String owner, int idPartita, String ospite, boolean accetta){
         return "ENTRA_RISPOSTA " + owner + " " + idPartita + " " + (accetta?1:0) + " " + ospite;
     }

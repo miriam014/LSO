@@ -267,6 +267,7 @@ void cmd_entra_risposta(int sock, const char *ownerUser, int id_partita, int acc
 
     cmd_mie_partite(p->proprietario_sock); //invia le mie partite lo riceve solo il proprietario
     cmd_mie_partite(p->ospite_sock); //invia le mie partite lo riceve solo l'ospite
+    invia_stato_partita(p);
 }
 
 void cmd_mossa(int sock, const char *utente, int id_partita, int cella){

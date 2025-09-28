@@ -196,6 +196,7 @@ public class HomeController {
                     if (!navigated) {
                         navigated = true;
                         popupAttesa.setVisible(false);
+                        Sessione.setSonoProprietario(true);
                         try { Main.setRoot("partita.fxml"); } catch (Exception e) { e.printStackTrace(); }
                     }
                 }
@@ -204,7 +205,21 @@ public class HomeController {
         } else if (msg.startsWith("ENTRA_ESITO")) {
             if (waitNoOpponent != null) { waitNoOpponent.stop(); waitNoOpponent = null; }
             if (hidePopupDelay != null) { hidePopupDelay.stop(); hidePopupDelay = null; }
+
             if (msg.contains("accetta=true")){
+                Integer id = null;
+                for (String tok : msg.split("\\s+")) {
+                    if (tok.startsWith("partita=")) {
+                        try { id = Integer.parseInt(tok.substring("partita=".length())); } catch (Exception ignore) {}
+                    }
+                }
+                if (id != null && id > 0) {
+                    Sessione.setIdPartita(id);
+                    Sessione.setSonoProprietario(false);
+                    System.out.println("[DEBUG][Home] set idPartita=" + id + " da ENTRA_ESITO");
+                } else {
+                    System.out.println("[DEBUG][Home] ENTRA_ESITO senza id, attendo STATO_PARTITA");
+                }
                 popupAttesa.setVisible(false);
                 Main.getNetClient().send(MessaggiBuilder.miePartite());
                 try{ Main.setRoot("partita.fxml"); } catch (Exception e){ e.printStackTrace(); }

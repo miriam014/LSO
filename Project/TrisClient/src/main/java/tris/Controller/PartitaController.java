@@ -14,16 +14,9 @@ public class PartitaController {
     @FXML private Label labelResult;
     @FXML private Button replayButton;
 
-    @FXML private Button btn00;
-    @FXML private Button btn01;
-    @FXML private Button btn02;
-    @FXML private Button btn10;
-    @FXML private Button btn11;
-    @FXML private Button btn12;
-    @FXML private Button btn20;
-    @FXML private Button btn21;
-    @FXML private Button btn22;
-
+    @FXML private Button btn00, btn01, btn02,
+                         btn10, btn11, btn12,
+                         btn20, btn21, btn22;
     @FXML private GridPane trisGrid;
 
     private String lastScacchiera = ".........";
@@ -33,6 +26,13 @@ public class PartitaController {
         labelResult.setVisible(false);
         replayButton.setVisible(false);
         replayButton.setManaged(false);
+
+        boolean owner = Sessione.isSonoProprietario();
+        if (!owner) {
+            labelResult.setText("In attesa che il proprietario inizi la partita...");
+            labelResult.setVisible(true);
+            trisGrid.setDisable(true);
+        }
 
         Main.getNetClient().setOnMessage(msg -> {
             Platform.runLater(() -> handleServerMessage(msg.trim()));
@@ -70,7 +70,6 @@ public class PartitaController {
             aggiornaScacchiera(msg);
 
         } else if (msg.startsWith("STATO_PARTITA")) {
-            // aggiorna subito la scacchiera
             aggiornaScacchiera(msg);
 
             if (msg.contains("IN_CORSO")) {
@@ -78,19 +77,6 @@ public class PartitaController {
                 labelResult.setVisible(false);
                 replayButton.setVisible(false);
                 replayButton.setManaged(false);
-
-                // Se non hai già salvato l'idPartita, fallo ora
-                try {
-                    String[] tokens = msg.split("\\s+");
-                    int id = Integer.parseInt(tokens[1]);
-                    Sessione.setIdPartita(id);
-                    System.out.println("[DEBUG] Entrata in partita IN_CORSO con id=" + id);
-                } catch (Exception e) {
-                    System.out.println("[DEBUG] Non riesco a parsare l'id della partita da: " + msg);
-                }
-
-                // 🔹 Forza di nuovo la sincronizzazione del turno al primo STATO_PARTITA
-                aggiornaScacchiera(msg);
             }
 
         } else if (msg.startsWith("PARTITA_FINITA")) {
@@ -123,6 +109,7 @@ public class PartitaController {
         } else if (msg.startsWith("ERRORE")) {
             System.out.println("[Server ERRORE] " + msg);
         }
+
         else if(msg.startsWith("REMATCH_RICHIESTA")) {
             String[] parts = msg.split("\\s+");
             if (parts.length < 3) return;
@@ -197,12 +184,15 @@ public class PartitaController {
 
         System.out.println("[DEBUG] Aggiorna scacchiera: " + scacchiera + " turno=" + turno);
         // Abilita/disabilita la griglia in base al turno
-        if (!turno.isEmpty()) {
-            String me = Sessione.getUsername();
-            boolean myTurn = turno.equals(me);
-            trisGrid.setDisable(!myTurn);
-            System.out.println("[DEBUG] È il turno di " + turno + " (io=" + me + ")");
-        }
+        String me = Sessione.getUsername();
+        boolean myTurn = turno.equals(me);
+        boolean idValido = Sessione.getIdPartita() > 0;
+
+        trisGrid.setDisable(!(myTurn && idValido));
+        labelResult.setText("In attesa dell'avversario...");
+        labelResult.setVisible(true);
+        System.out.println("[DEBUG] È il turno di " + turno + " (io=" + me + ")");
+
 
         // aggiorno solo se la scacchiera è cambiata
         if (scacchiera.length() == 9 && !scacchiera.equals(lastScacchiera)) {
