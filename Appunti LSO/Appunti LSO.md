@@ -16,13 +16,15 @@ per quanto riguarda il client ho
 Ovviamente non è normale avere un client con un controller da oltre 300 righe di codice e il resto delle classi quasi vuoto quindi mi limiterei semlicemnete a spostare la logica dell'allert all'interno della classe controller. per il resto lasciamo tutto così tanto a lei queste cose non devono interessare. Si tratta solo di una brutta gestione delle classi per il resto sti cazz.
 Divertiti amore, per qualsiasi cosa ricordati di chiedere baciooo
 
-- rifare la partita con lo stesso giocatore
-- in ordine le partite 
-- colonna abbandona 
-- modificare menu a tendina 
-- messaggio in attesa tra un turno e l'altro
+
+
+- una volta che ho deciso di abbandonare la partita deve comparire un alert 
+- esce il bottone rigioca nonostante l'avversario abbia abbandonato, invece devo tornare alla home (dopo che mi è arrivato un alert che dice che il mio avversario ha abbandonato. 
+- non si legge il tasto il label "hai vinto/hai perso" ma solo quello rigioca (penso sia decentrato)
+- tasto rematch 
+- rimuovere bug entrambi non possono cliccare dopo che creo una nuova partita, si sfalzano i turni
 - limite partite raggiunto 
-- 
+
 
 ## Server 
 ###  Funzioni usate nel server c

@@ -119,6 +119,9 @@ void *handle_client(void *arg) {
         else if (sscanf(buffer, "STATO_PARTITA %d", &id) == 1) {
             cmd_stato_partita(cSocket, id);
         }
+        else if (sscanf(buffer, "ABBANDONA_PARTITA %31s %d", utente, &id) == 2) {
+            cmd_abbandona_partita(cSocket, utente, id);
+        }
         else {
             send_msg(cSocket, "ERRORE comando non riconosciuto");
         }

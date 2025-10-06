@@ -42,4 +42,7 @@ public class MessaggiBuilder {
         return "REMATCH_RISPOSTA " + utente + " " + idPartita + " " + (accetta ? 1 : 0);
     }
 
+    public static String abbandonaPartita(String utente, int idPartita) {
+        return "ABBANDONA_PARTITA " + utente + " " + idPartita;
+    }
 }

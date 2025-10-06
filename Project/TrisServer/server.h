@@ -42,6 +42,7 @@ typedef struct {
     char        turno[32];       // username di chi deve giocare
     int         pronto_proprietario;
     int         pronto_ospite;
+    char vincitore[32]; //vuota finchè non finisce la partita
 } Partita;
 
 int setup_server();              // Funzione per configurare il server (apre la soket e mette il server in ascolto)
@@ -70,6 +71,6 @@ char esito_scacchiera(const char b[10]);
 void invia_a_tutti(const char *msg, int escludi_sock);
 void invia_stato_partita(Partita *p);
 void cmd_stato_partita(int sock, int id_partita);
-
+void cmd_abbandona_partita(int sock, const char *utente, int id_partita);
 
 #endif

@@ -57,6 +57,13 @@ public class HomeController {
     @FXML
     private void CreateNew() {
         String nomeUtente = InsertName.getText().trim();
+        // Blocca i nomi con spazi
+        if (nomeUtente.contains(" ")) {
+            popupLabel.setText("Il nome utente non può contenere spazi.");
+            popupAttesa.setVisible(true);
+            return;
+        }
+
         if (nomeUtente.isEmpty()) {
             popupLabel.setText("Inserisci prima un nome utente.");
             popupAttesa.setVisible(true);
@@ -91,6 +98,7 @@ public class HomeController {
     private void handleServerMessage(String msg) {
         msg = msg.trim();
         System.out.println("[DEBUG][Home] Ricevuto: " + msg);
+        Sessione.setLastMessage(msg);
 
         if (msg.startsWith("ATTESA_AVVERSARIO")) {
             popupLabel.setText("In attesa di un avversario...");
@@ -98,7 +106,10 @@ public class HomeController {
             String[] parts = msg.split("\\s+");
             for (String p : parts) {
                 if (p.startsWith("id=")) {
-                    try { Sessione.setIdPartita(Integer.parseInt(p.substring(3))); } catch (Exception ignore) {}
+                    try {
+                        Sessione.setIdPartita(Integer.parseInt(p.substring(3)));
+                    } catch (Exception ignore) {
+                    }
                 }
             }
 
@@ -115,7 +126,7 @@ public class HomeController {
                 int idPartita = Integer.parseInt(tokens[0]);
                 String proprietario = tokens[2].split("=", 2)[1];
 
-                MenuItem item = new MenuItem("Unisciti alla partita di " + proprietario);
+                MenuItem item = new MenuItem(proprietario);
                 item.setOnAction(e -> {
                     String utente = InsertName.getText().trim().replace(" ", "_");
                     if (utente.isEmpty()) {
@@ -135,11 +146,14 @@ public class HomeController {
                 partiteDisponibili.getItems().add(new MenuItem("nessuna partita disponibile"));
             }
 
-        } else if (msg.startsWith("MIE_PARTITE")) {
-            ObservableList<PartitaRow> items = tablePartite.getItems();
-            items.clear();
-
+        }  else if (msg.startsWith("MIE_PARTITE")) {
             String[] righe = msg.split("\n");
+            String me = Sessione.getUsername() == null ? "" : Sessione.getUsername().trim();
+            ObservableList<PartitaRow> items = tablePartite.getItems();
+
+            // 🔹 Costruiamo una nuova lista temporanea dalle righe ricevute
+            ObservableList<PartitaRow> nuoviItems = FXCollections.observableArrayList();
+
             for (int i = 1; i < righe.length; i++) {
                 String riga = righe[i].trim();
                 if (riga.isEmpty()) continue;
@@ -149,26 +163,51 @@ public class HomeController {
                 String stato = tokens[1];
                 String proprietario = tokens[2].split("=")[1];
                 String ospite = tokens[3].split("=")[1];
-                String me = Sessione.getUsername();
-                String avversario = me.equals(proprietario) ? ospite : proprietario;
+
+                String avversario;
+                if (me.equalsIgnoreCase(proprietario)) {
+                    avversario = (ospite == null || ospite.equals("-")) ? "(in attesa...)" : ospite;
+                } else {
+                    avversario = proprietario;
+                }
 
                 String risultato = "-";
+
                 if ("TERMINATA".equals(stato)) {
+                    String vinc = null;
                     for (String t : tokens) {
                         if (t.startsWith("vinc=")) {
-                            String vinc = t.substring("vinc=".length());
-                            if ("=".equals(vinc)) risultato = "Pareggio";
-                            else if (vinc.equals(me)) risultato = "Hai vinto";
-                            else risultato = "Hai perso";
+                            vinc = t.substring("vinc=".length()).trim();
                         }
                     }
-                }
-                items.add(new PartitaRow(idPartita, avversario, stato, risultato));
-            }
-            tablePartite.refresh();
-            System.out.println("[DEBUG][Home] Tabella aggiornata: " + items.size() + " partite");
 
-        } else if (msg.startsWith("ENTRA_RICHIESTA_INVIATA")) {
+                    if (vinc == null || vinc.isEmpty() || "=".equals(vinc)) {
+                        risultato = "-";
+                    } else if ("pareggio".equalsIgnoreCase(vinc)) {
+                        risultato = "Pareggio";
+                    } else if ("non_terminata".equalsIgnoreCase(vinc)) {
+                        risultato = "-";  // 👈 abbandono → solo stato TERMINATA
+                    } else if (vinc.equalsIgnoreCase(me)) {
+                        risultato = "Hai vinto";
+                    } else {
+                        risultato = "Hai perso";
+                    }
+                }
+
+                nuoviItems.add(new PartitaRow(idPartita, avversario, stato, risultato));
+            }
+
+            // 🔹 Aggiornamento "upsert" – sostituisco solo se ci sono differenze
+            if (!items.equals(nuoviItems)) {
+                tablePartite.setItems(nuoviItems);
+                tablePartite.refresh();
+            }
+
+            System.out.println("[DEBUG][Home] Tabella aggiornata: " + nuoviItems.size() + " partite");
+        }
+
+
+        else if (msg.startsWith("ENTRA_RICHIESTA_INVIATA")) {
             popupLabel.setText("Richiesta inviata. Attendi la risposta del proprietario...");
             popupAttesa.setVisible(true);
             partiteDisponibili.setDisable(true);
@@ -246,28 +285,65 @@ public class HomeController {
             }
 
         } else if (msg.startsWith("STATO_PARTITA")) {
-            // aggiorniamo solo la tabella, non la GUI della partita
+                String[] tokens = msg.split("\\s+");
+                if (tokens.length < 7) return;
+
+                int idPartita = Integer.parseInt(tokens[1]);
+                String stato = tokens[2];
+                String proprietario = tokens[5].split("=")[1];
+                String ospite = tokens[6].split("=")[1];
+                String me = Sessione.getUsername() == null ? "" : Sessione.getUsername().trim();
+                String avversario;
+                if (me.equalsIgnoreCase(proprietario)) {
+                    avversario = (ospite == null || ospite.equals("-")) ? "(in attesa...)" : ospite;
+                } else {
+                    avversario = proprietario;
+                }
+
+                ObservableList<PartitaRow> items = tablePartite.getItems();
+                boolean trovato = false;
+                for (int k = 0; k < items.size(); k++) {
+                    if (items.get(k).getId() == idPartita) {
+                        items.set(k, new PartitaRow(idPartita, avversario, stato, "-"));
+                        trovato = true;
+                        break;
+                    }
+                }
+                if (!trovato) {
+                    items.add(new PartitaRow(idPartita, avversario, stato, "-"));
+                }
+
+                tablePartite.refresh();
+            }
+        else if (msg.startsWith("PARTITA_FINITA")) {
             String[] tokens = msg.split("\\s+");
-            if (tokens.length < 7) return;
+            int idPartita = -1;
+            String vincitore = null;
 
-            int idPartita = Integer.parseInt(tokens[1]);
-            String stato = tokens[2];
-            String proprietario = tokens[5].split("=")[1];
-            String ospite = tokens[6].split("=")[1];
-            String me = Sessione.getUsername();
-            String avversario = me.equals(proprietario) ? ospite : proprietario;
-
-            int idx = -1;
-            for (int k = 0; k < tablePartite.getItems().size(); k++) {
-                if (tablePartite.getItems().get(k).getId() == idPartita) { idx = k; break; }
+            for (String t : tokens) {
+                if (t.startsWith("id_partita=")) {
+                    idPartita = Integer.parseInt(t.substring("id_partita=".length()));
+                } else if (t.startsWith("vincitore=")) {
+                    vincitore = t.substring("vincitore=".length()).trim();
+                }
             }
 
-            PartitaRow row = new PartitaRow(idPartita, avversario, stato, "-");
-            if (idx >= 0) tablePartite.getItems().set(idx, row);
-            else tablePartite.getItems().add(row);
+            if (idPartita < 0) return;
+
+            String risultato = "Non terminata";
+
+            ObservableList<PartitaRow> items = tablePartite.getItems();
+            for (int k = 0; k < items.size(); k++) {
+                if (items.get(k).getId() == idPartita) {
+                    PartitaRow old = items.get(k);
+                    tablePartite.getItems().set(
+                            k, new PartitaRow(idPartita, old.getAvversario(), "TERMINATA", risultato)
+                    );
+                    break;
+                }
+            }
             tablePartite.refresh();
         }
-
         createNew.setDisable(false);
         partiteDisponibili.setDisable(false);
     }

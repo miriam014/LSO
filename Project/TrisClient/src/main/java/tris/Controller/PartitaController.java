@@ -18,6 +18,7 @@ public class PartitaController {
                          btn10, btn11, btn12,
                          btn20, btn21, btn22;
     @FXML private GridPane trisGrid;
+    @FXML private Button abandonButton;
 
     private String lastScacchiera = ".........";
 
@@ -95,7 +96,11 @@ public class PartitaController {
             aggiornaScacchiera(msg);
 
             if (msg.contains("IN_CORSO")) {
+                abandonButton.setVisible(true);
+                abandonButton.setManaged(true);
+
                 labelResult.setVisible(false);
+                labelResult.setManaged(false);
                 replayButton.setVisible(false);
                 replayButton.setManaged(false);
             }
@@ -104,28 +109,62 @@ public class PartitaController {
         // === PARTITA_FINITA ===
         else if (msg.startsWith("PARTITA_FINITA")) {
             int idPartita = -1;
+            String vincitore = "";
+            boolean abbandono = msg.contains("abbandono=true");
+
+            // Estrai id partita e vincitore
             for (String tok : msg.split("\\s+")) {
                 if (tok.startsWith("id_partita=")) {
                     idPartita = Integer.parseInt(tok.substring("id_partita=".length()));
+                } else if (tok.startsWith("vincitore=")) {
+                    vincitore = tok.substring("vincitore=".length()).trim();
                 }
             }
+
+            // Ignora messaggi di altre partite
             if (idPartita != Sessione.getIdPartita()) {
                 System.out.println("[DEBUG] Ignoro PARTITA_FINITA di altra partita " + idPartita);
                 return;
             }
 
-            String vincitore = "";
-            if (msg.contains("vincitore=")) {
-                vincitore = msg.split("vincitore=")[1].trim();
-            }
             String me = Sessione.getUsername();
-            if ("pareggio".equalsIgnoreCase(vincitore)) {
+
+            // Caso speciale: abbandono
+            if (abbandono) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Partita terminata");
+                alert.setHeaderText(null);
+                alert.setContentText("Il tuo avversario ha abbandonato la partita.");
+                alert.getButtonTypes().setAll(new ButtonType("OK", ButtonBar.ButtonData.OK_DONE));
+
+                alert.showAndWait();
+
+                try {
+                    Main.setRoot("home.fxml");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return;
+            }
+
+            //  Caso 2: pareggio
+            if ("pareggio".equalsIgnoreCase(vincitore) || "=".equals(vincitore.trim())) {
                 labelResult.setText("Pareggio!");
-            } else if (vincitore.equals(me)) {
+            }
+
+            // Caso 3: hai vinto
+            else if (vincitore.equalsIgnoreCase(me)) {
                 labelResult.setText("Hai vinto!");
-            } else {
+            }
+
+            // Caso 4: hai perso
+            else {
                 labelResult.setText("Hai perso!");
             }
+
+            abandonButton.setVisible(false);
+            abandonButton.setManaged(false);
+
             labelResult.setVisible(true);
             replayButton.setVisible(true);
             replayButton.setManaged(true);
@@ -144,6 +183,8 @@ public class PartitaController {
                 System.out.println("[DEBUG] Ignoro AVVERSARIO_DISCONNESSO di altra partita " + idPartita);
                 return;
             }
+            abandonButton.setVisible(false);
+            abandonButton.setManaged(false);
 
             labelResult.setText("Il tuo avversario si è disconnesso.");
             labelResult.setVisible(true);
@@ -284,4 +325,35 @@ public class PartitaController {
             throw new RuntimeException(e);
         }
     }
+
+    @FXML
+    public void abandonGame(ActionEvent actionEvent) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Conferma abbandono");
+        alert.setHeaderText(null);
+        alert.setContentText("Sei sicuro di voler abbandonare la partita?");
+        ButtonType siBtn = new ButtonType("Sì", ButtonBar.ButtonData.YES);
+        ButtonType noBtn = new ButtonType("No", ButtonBar.ButtonData.NO);
+        alert.getButtonTypes().setAll(siBtn, noBtn);
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response == siBtn) {
+                int idPartita = Sessione.getIdPartita();
+                String utente = Sessione.getUsername();
+
+                System.out.println("[DEBUG] In abandonGame: " + utente + " partita=" + idPartita);
+                Main.getNetClient().send(MessaggiBuilder.abbandonaPartita(utente, idPartita));
+
+                try {
+                    Main.setRoot("home.fxml");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                // Se clicca su "No", non facciamo nulla
+                System.out.println("[DEBUG] Abbandono annullato dall'utente.");
+            }
+        });
+    }
+
 }
