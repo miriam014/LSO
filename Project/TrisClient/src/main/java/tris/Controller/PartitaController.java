@@ -45,7 +45,7 @@ public class PartitaController {
     // Mando al server la mossa scelta dall’utente
     @FXML
     private void handleMove(ActionEvent e) {
-        
+
         Button btn = (Button) e.getSource();
 
         // Se la cella è già occupata, non mando nulla
@@ -166,6 +166,7 @@ public class PartitaController {
             abandonButton.setManaged(false);
 
             labelResult.setVisible(true);
+            labelResult.setManaged(true);
             replayButton.setVisible(true);
             replayButton.setManaged(true);
             trisGrid.setDisable(true);
@@ -227,7 +228,6 @@ public class PartitaController {
 
         // === REMATCH_ESITO ===
         else if (msg.startsWith("REMATCH_ESITO")) {
-            int idPartita = Sessione.getIdPartita(); // il server non manda sempre id, ma noi sappiamo quello corrente
             if (!msg.contains("accetta=true")) {
                 try {
                     Main.setRoot("home.fxml");
@@ -236,12 +236,45 @@ public class PartitaController {
                 }
                 return;
             }
-            resetBoard();
-            labelResult.setVisible(false);
-            replayButton.setVisible(false);
-            replayButton.setManaged(false);
-            trisGrid.setDisable(false);
+
+            // trova il nuovo id partita direttamente dal prossimo STATO_PARTITA che il server manderà
+            // (invece di leggerlo da MIE_PARTITE, così è sempre aggiornato)
+            Main.getNetClient().setOnMessage(msgRematch -> {
+                Platform.runLater(() -> {
+                    if (msgRematch.startsWith("STATO_PARTITA")) {
+                        String[] tokens = msgRematch.split("\\s+");
+                        if (tokens.length > 1) {
+                            try {
+                                int nuovoId = Integer.parseInt(tokens[1]);
+                                Sessione.setIdPartita(nuovoId);
+                                System.out.println("[DEBUG] Nuovo idPartita (dal rematch): " + nuovoId);
+
+                                // riporta il listener normale
+                                Main.getNetClient().setOnMessage(innerMsg ->
+                                        Platform.runLater(() -> handleServerMessage(innerMsg.trim()))
+                                );
+
+                                // aggiorna subito la UI
+                                resetBoard();
+                                labelResult.setVisible(false);
+                                replayButton.setVisible(false);
+                                replayButton.setManaged(false);
+                                trisGrid.setDisable(false);
+                                abandonButton.setVisible(true);
+                                abandonButton.setManaged(true);
+
+                                // forza il recupero stato
+                                Main.getNetClient().send("STATO_PARTITA " + nuovoId);
+                            } catch (NumberFormatException ignored) {}
+                        }
+                    }
+                });
+            });
+
+            // chiede al server di inviare subito lo stato per la nuova partita
+            Main.getNetClient().send(MessaggiBuilder.miePartite());
         }
+
 
         // === ERRORI ===
         else if (msg.startsWith("ERRORE")) {
@@ -283,8 +316,19 @@ public class PartitaController {
         boolean idValido = Sessione.getIdPartita() > 0;
 
         trisGrid.setDisable(!(myTurn && idValido));
-        labelResult.setText("In attesa dell'avversario...");
+    // Mostra “In attesa…” solo se la partita è ancora in corso
+        if (labelResult.isVisible() && (
+                "Hai vinto!".equals(labelResult.getText()) ||
+                        "Hai perso!".equals(labelResult.getText()) ||
+                        "Pareggio!".equals(labelResult.getText())
+        )) {
+            // se c'è già un risultato finale, non cambiare nulla
+            return;
+        }
+
+        labelResult.setText("In attesa dell’avversario...");
         labelResult.setVisible(true);
+
         System.out.println("[DEBUG] È il turno di " + turno + " (io=" + me + ")");
 
 

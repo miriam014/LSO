@@ -391,21 +391,44 @@
                 return;
             }
 
-            // entrambi accettano → resetto
-            azzera_scacchiera(p);
-            snprintf(p->turno, sizeof(p->turno), "%s", p->proprietario);
-            p->stato = ST_IN_CORSO;
+            // CREA UNA NUOVA PARTITA (nuovo ID)
+            Partita *nuova = NULL;
+            for (int i = 0; i < MAX_PARTITE; i++) {
+                if (g_partite[i].id == 0) {
+                    nuova = &g_partite[i];
+                    break;
+                }
+            }
 
-            // reset vincitore per il rematch
-            p->vincitore[0] = '\0';
+            if (!nuova) {
+                pthread_mutex_unlock(&g_lock);
+                send_msg(sock, "ERRORE Troppe partite attive");
+                return;
+            }
+
+            nuova->id = g_prossimoId++;
+            strcpy(nuova->proprietario, p->proprietario);
+            strcpy(nuova->ospite, p->ospite);
+            nuova->proprietario_sock = owner_sock;
+            nuova->ospite_sock = guest_sock;
+            nuova->stato = ST_IN_CORSO;
+            azzera_scacchiera(nuova);
+            snprintf(nuova->turno, sizeof(nuova->turno), "%s", nuova->proprietario);
+            nuova->vincitore[0] = '\0';
+            nuova->pronto_proprietario = nuova->pronto_ospite = 0;
 
             pthread_mutex_unlock(&g_lock);
 
             if (owner_sock > 0) send_msg(owner_sock, "REMATCH_ESITO accetta=true");
             if (guest_sock > 0) send_msg(guest_sock, "REMATCH_ESITO accetta=true");
 
-            invia_stato_partita(p);
+            invia_stato_partita(nuova);
+
+            // Aggiorna entrambi i client con la nuova lista
+            cmd_mie_partite(owner_sock);
+            cmd_mie_partite(guest_sock);
         }
+
 
         void cmd_stato_partita(int sock, int id_partita) {
             pthread_mutex_lock(&g_lock);

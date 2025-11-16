@@ -16,7 +16,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="520.0" prefWidth="530.0" style="-fx-background-color: #781F19;" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tris.Controller.HomeController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="520.0" prefWidth="530.0" style="-fx-background-color: #781F19;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tris.Controller.HomeController">
    <children>
       <BorderPane layoutX="13.0" layoutY="173.0" prefHeight="447.0" prefWidth="411.0" style="-fx-background-color: white;" AnchorPane.bottomAnchor="13.0" AnchorPane.leftAnchor="13.0" AnchorPane.rightAnchor="13.0" AnchorPane.topAnchor="13.0">
          <top>
@@ -80,10 +80,10 @@
                         </VBox>
                         <TableView fx:id="tablePartite" nodeOrientation="LEFT_TO_RIGHT" prefHeight="308.0" prefWidth="504.0" stylesheets="@stile.css">
                            <columns>
-                              <TableColumn fx:id="columAvversario" minWidth="0.0" prefWidth="144.0" text="Avversario" />
-                              <TableColumn fx:id="columStato" prefWidth="127.0" text="Stato" />
-                              <TableColumn fx:id="coulmRisultato" prefWidth="125.0" text="Risultato" />
-                              <TableColumn fx:id="columAzione" prefWidth="102.0" text="Action" />
+                              <TableColumn fx:id="columAvversario" minWidth="0.0" prefWidth="106.0" text="Avversario" />
+                              <TableColumn fx:id="columStato" prefWidth="138.0" text="Stato" />
+                              <TableColumn fx:id="coulmRisultato" prefWidth="136.0" text="Risultato" />
+                              <TableColumn fx:id="columAzione" prefWidth="136.0" text="Action" />
                            </columns>
                         </TableView>
                      </children>

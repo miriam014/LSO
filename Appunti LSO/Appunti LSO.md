@@ -18,10 +18,6 @@ Divertiti amore, per qualsiasi cosa ricordati di chiedere baciooo
 
 
 
-- una volta che ho deciso di abbandonare la partita deve comparire un alert 
-- esce il bottone rigioca nonostante l'avversario abbia abbandonato, invece devo tornare alla home (dopo che mi è arrivato un alert che dice che il mio avversario ha abbandonato. 
-- non si legge il tasto il label "hai vinto/hai perso" ma solo quello rigioca (penso sia decentrato)
-- tasto rematch 
 - rimuovere bug entrambi non possono cliccare dopo che creo una nuova partita, si sfalzano i turni
 - limite partite raggiunto 
 

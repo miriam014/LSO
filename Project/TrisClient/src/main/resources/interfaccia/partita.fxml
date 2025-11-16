@@ -10,53 +10,41 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
 <AnchorPane prefHeight="473.0" prefWidth="438.0" style="-fx-background-color: #781F19;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tris.Controller.PartitaController">
 
     <children>
         <BorderPane prefHeight="447.0" prefWidth="411.0" style="-fx-background-color: white;" stylesheets="@stile.css" AnchorPane.bottomAnchor="13.0" AnchorPane.leftAnchor="13.0" AnchorPane.rightAnchor="13.0" AnchorPane.topAnchor="13.0">
 
-            <!-- TOP con bottone e label risultato sotto -->
             <top>
-                <VBox alignment="CENTER" spacing="10">
-                    <Button fx:id="back" mnemonicParsing="false" onAction="#backHome" text="Torna alla home ">
-                        <VBox.margin>
-                            <Insets right="280.0" top="10.0" />
-                        </VBox.margin>
-                    </Button>
-                    <HBox prefHeight="48.0" prefWidth="412.0">
+                <VBox alignment="CENTER" prefHeight="59.0" prefWidth="412.0" spacing="15">
+                    <!-- Riga 1: pulsanti principali -->
+                    <HBox alignment="CENTER_LEFT" prefWidth="400" spacing="10">
                         <children>
-                            <Button fx:id="abandonButton" text="Abbandona" onAction="#abandonGame"
-                                    prefHeight="29.0" prefWidth="100.0">
-                                <HBox.margin>
-                                    <Insets left="110.0" top="10.0" />
-                                </HBox.margin>
-                            </Button>
-                            <Label fx:id="labelResult" prefHeight="35.0" prefWidth="140.0"
-                                   text="Risultato Partita" textFill="#9c3b35" visible="false" managed="false">
-                                <font>
-                                    <Font name="System Bold Italic" size="16.0" />
-                                </font>
-                                <HBox.margin>
-                                    <Insets left="20.0" top="7.0" />
-                                </HBox.margin>
-                            </Label>
-                            <Button fx:id="replayButton" mnemonicParsing="false" prefHeight="29.0"
-                                    prefWidth="75.0" text="Rigioca" onAction="#replayGame"
-                                    visible="false" managed="false">
-                                <HBox.margin>
-                                    <Insets top="10.0" />
-                                </HBox.margin>
-                            </Button>
+                            <Button fx:id="back" onAction="#backHome" prefHeight="30" prefWidth="128.0" style="-fx-font-weight: bold;" stylesheets="@stile.css" text="Torna alla home">
+                        <HBox.margin>
+                           <Insets left="6.0" />
+                        </HBox.margin></Button>
+
+                            <Button fx:id="abandonButton" onAction="#abandonGame" prefHeight="30" prefWidth="100" style="-fx-font-weight: bold;" stylesheets="@stile.css" text="Abbandona" />
                         </children>
                     </HBox>
+
+                    <!-- Riga 2: label risultato e bottone rigioca -->
+                    <VBox alignment="CENTER" spacing="10">
+                        <children>
+                            <Label fx:id="labelResult" alignment="CENTER" managed="false" prefHeight="35" prefWidth="300" style="-fx-font-size: 22px; -fx-text-fill: #781F19; -fx-font-weight: bold;" text="Risultato partita" textAlignment="CENTER" visible="false" />
+
+                            <Button fx:id="replayButton" managed="false" onAction="#replayGame" prefHeight="30" prefWidth="100" style="-fx-background-color: #781F19; -fx-text-fill: white; -fx-font-weight: bold;" text="Rigioca" visible="false" />
+                        </children>
+                    </VBox>
                 </VBox>
             </top>
 
+
             <!-- CENTRO con griglia Tris -->
             <center>
-                <GridPane fx:id="trisGrid" alignment="CENTER" hgap="0" prefHeight="300.0" prefWidth="300.0" vgap="0">
+                <GridPane fx:id="trisGrid" alignment="CENTER" hgap="0" prefHeight="300.0" prefWidth="300.0" stylesheets="@stile.css" vgap="0">
 
                     <!-- Riga 0 -->
                     <Button fx:id="btn00" onAction="#handleMove" prefHeight="100" prefWidth="100" style="-fx-text-fill: black; -fx-background-color: transparent; -fx-border-color: transparent #781F19 #781F19 transparent; -fx-border-width: 0 2 2 0;" GridPane.columnIndex="0" GridPane.rowIndex="0" />

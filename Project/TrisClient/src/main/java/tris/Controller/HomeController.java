@@ -186,7 +186,7 @@ public class HomeController {
                     } else if ("pareggio".equalsIgnoreCase(vinc)) {
                         risultato = "Pareggio";
                     } else if ("non_terminata".equalsIgnoreCase(vinc)) {
-                        risultato = "-";  // 👈 abbandono → solo stato TERMINATA
+                        risultato = "Abbandonata";  // 👈 abbandono → solo stato TERMINATA
                     } else if (vinc.equalsIgnoreCase(me)) {
                         risultato = "Hai vinto";
                     } else {
@@ -373,10 +373,6 @@ public class HomeController {
                         try { Main.setRoot("partita.fxml"); } catch (Exception ex) { ex.printStackTrace();}
                         System.out.println("[DEBUG] riprendo partita in corso ID=" + idPartita);
 
-                    } else if ("TERMINATA".equals(stato)) {
-                        String me = Sessione.getUsername();
-                        Main.getNetClient().send(MessaggiBuilder.rematch(me, idPartita, true));
-                        System.out.println("[DEBUG] Richiesta rematch per partita ID=" + idPartita);
                     }
                 });
             }
@@ -393,16 +389,6 @@ public class HomeController {
                         actionButton.setText("Continua");
                         actionButton.setDisable(false);
                         setGraphic(actionButton);
-
-                    } else if ("TERMINATA".equals(partita.getStato())) {
-                        if ("Avversario disconnesso".equals(partita.getRisultato())) {
-                            // nessun bottone se avversario disconnesso
-                            setGraphic(null);
-                        } else {
-                            actionButton.setText("Rematch");
-                            actionButton.setDisable(false);
-                            setGraphic(actionButton);
-                        }
 
                     } else {
                         setGraphic(null);
