@@ -122,10 +122,7 @@ public class PartitaController {
             }
 
             // Ignora messaggi di altre partite
-            if (idPartita != Sessione.getIdPartita()) {
-                System.out.println("[DEBUG] Ignoro PARTITA_FINITA di altra partita " + idPartita);
-                return;
-            }
+            if (idPartita != Sessione.getIdPartita()) { return; }
 
             String me = Sessione.getUsername();
 
@@ -138,27 +135,14 @@ public class PartitaController {
                 alert.getButtonTypes().setAll(new ButtonType("OK", ButtonBar.ButtonData.OK_DONE));
 
                 alert.showAndWait();
-
-                try {
-                    Main.setRoot("home.fxml");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return;
             }
 
-            //  Caso 2: pareggio
-            if ("pareggio".equalsIgnoreCase(vincitore) || "=".equals(vincitore.trim())) {
+            // Mostra il risultato
+            if ("pareggio".equalsIgnoreCase(vincitore)) {
                 labelResult.setText("Pareggio!");
-            }
-
-            // Caso 3: hai vinto
-            else if (vincitore.equalsIgnoreCase(me)) {
+            } else if (vincitore.equalsIgnoreCase(me)) {
                 labelResult.setText("Hai vinto!");
-            }
-
-            // Caso 4: hai perso
-            else {
+            } else {
                 labelResult.setText("Hai perso!");
             }
 
@@ -169,27 +153,6 @@ public class PartitaController {
             labelResult.setManaged(true);
             replayButton.setVisible(true);
             replayButton.setManaged(true);
-            trisGrid.setDisable(true);
-        }
-
-        // === AVVERSARIO_DISCONNESSO ===
-        else if (msg.startsWith("AVVERSARIO_DISCONNESSO")) {
-            int idPartita = -1;
-            for (String tok : msg.split("\\s+")) {
-                if (tok.startsWith("partita=")) {
-                    idPartita = Integer.parseInt(tok.substring("partita=".length()));
-                }
-            }
-            if (idPartita != Sessione.getIdPartita()) {
-                System.out.println("[DEBUG] Ignoro AVVERSARIO_DISCONNESSO di altra partita " + idPartita);
-                return;
-            }
-            abandonButton.setVisible(false);
-            abandonButton.setManaged(false);
-
-            labelResult.setText("Il tuo avversario si è disconnesso.");
-            labelResult.setVisible(true);
-            replayButton.setVisible(false);
             trisGrid.setDisable(true);
         }
 
@@ -364,6 +327,7 @@ public class PartitaController {
 
     public void backHome(ActionEvent actionEvent) {
         try {
+            Main.getNetClient().send(MessaggiBuilder.miePartite()); // aggiorna lista prima di tornare
             Main.setRoot("home.fxml");
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -388,13 +352,18 @@ public class PartitaController {
                 System.out.println("[DEBUG] In abandonGame: " + utente + " partita=" + idPartita);
                 Main.getNetClient().send(MessaggiBuilder.abbandonaPartita(utente, idPartita));
 
-                try {
-                    Main.setRoot("home.fxml");
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+                trisGrid.setVisible(false);
+                abandonButton.setVisible(false);
+                abandonButton.setManaged(false);
+
+                replayButton.setVisible(false);
+                replayButton.setManaged(false);
+
+                labelResult.setText("Hai abbandonato la partita.");
+                labelResult.setVisible(true);
+                labelResult.setManaged(true);
+
             } else {
-                // Se clicca su "No", non facciamo nulla
                 System.out.println("[DEBUG] Abbandono annullato dall'utente.");
             }
         });

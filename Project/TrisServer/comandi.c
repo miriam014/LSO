@@ -77,7 +77,14 @@
                     send_msg(avversario_sock, buf);
                     cmd_mie_partite(avversario_sock); // aggiorna le mie partite dell’avversario
                 }
-                memset(p, 0, sizeof(*p)); // Libera lo slot
+                // Non cancellare la partita, solo rimuovi il socket
+                if (p->proprietario_sock == sock) p->proprietario_sock = 0;
+                if (p->ospite_sock == sock) p->ospite_sock = 0;
+
+                // Se la partita non ha più giocatori, allora puoi liberarla
+                if (p->proprietario_sock == 0 && p->ospite_sock == 0) {
+                    memset(p, 0, sizeof(*p));
+                }
             }
         }
         pthread_mutex_unlock(&g_lock);
@@ -98,12 +105,12 @@
         int L[8][3]={{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
         for(int i=0;i<8;i++) {
             if(riga_ok(b,L[i][0],L[i][1],L[i][2]))
-            return b[L[i][0]];
+            return b[L[i][0]];      //se trova tre righe o colonne uguali ritorna quel carattere o X o 0
         }
-        for(int i=0;i<9;i++){
+        for(int i=0;i<9;i++){       // se vede ancora un "." vuol dire che ci sono ancora celle vuote
             if(b[i]=='.') return '.';
         }
-        return '=';
+        return '=';                 // se non ci sono più celle vuote e non ha trovato un vincitore allora è pareggio
     }
 
     /* == Comandi == */
@@ -327,7 +334,7 @@
 
             // Salva il vincitore nella struct
             if (esito == '=') {
-                snprintf(p->vincitore, sizeof(p->vincitore), "=");
+                snprintf(p->vincitore, sizeof(p->vincitore), "pareggio");
             } else if (esito == 'X') {
                 snprintf(p->vincitore, sizeof(p->vincitore), "%s", p->proprietario);
             } else if (esito == 'O') {
@@ -339,9 +346,7 @@
             char buf[256];
             snprintf(buf,sizeof(buf),
                 "PARTITA_FINITA id_partita=%d scacchiera=%s vincitore=%s",
-                id_partita,
-                p->scacchiera,
-                (esito=='=' ? "pareggio" : p->vincitore));
+                id_partita, p->scacchiera, p->vincitore);
             invia_ai_giocatori(p, buf);
 
             // aggiorno le mie partite di entrambi
@@ -443,8 +448,10 @@
 
 
         void cmd_abbandona_partita(int sock, const char *utente, int id_partita) {
+        Partita *p = NULL;
+        // Acquisisco lock solo per modificare lo stato della partita
         pthread_mutex_lock(&g_lock);
-        Partita *p = trova_partita(id_partita);
+        p = trova_partita(id_partita);
         if (!p) {
             pthread_mutex_unlock(&g_lock);
             send_msg(sock, "ERRORE Partita non trovata");
@@ -461,21 +468,21 @@
 
         // Imposto lo stato a terminata
         p->stato = ST_TERMINATA;
-
-        // Nessun vincitore: partita non terminata
-        snprintf(p->vincitore, sizeof(p->vincitore), "non_terminata");
-
-        printf("[DEBUG] %s ha abbandonato la partita %d (non terminata)\n", utente, id_partita);
+        // Chi non abbandona è il vincitore
+        const char *vincitore_nome = is_owner ? p->ospite : p->proprietario;
+        snprintf(p->vincitore, sizeof(p->vincitore), "%s", vincitore_nome);
+        
+        // Notifica all’altro giocatore che l’avversario ha abbandonato
+        int avversario_sock = is_owner ? p->ospite_sock : p->proprietario_sock;
+        printf("[DEBUG] %s ha abbandonato la partita %d\n", utente, id_partita);
 
         pthread_mutex_unlock(&g_lock);
 
-        // Notifica all’altro giocatore che l’avversario ha abbandonato
-        int avversario_sock = is_owner ? p->ospite_sock : p->proprietario_sock;
         if (avversario_sock > 0) {
             char buf[256];
             snprintf(buf, sizeof(buf),
-                    "PARTITA_FINITA id_partita=%d abbandono=true scacchiera=%s vincitore=non_terminata",
-                    id_partita, p->scacchiera);
+                    "PARTITA_FINITA id_partita=%d abbandono=true scacchiera=%s vincitore=%s",
+                    id_partita, p->scacchiera, p->vincitore);
             send_msg(avversario_sock, buf);
             cmd_mie_partite(avversario_sock); // aggiorna lista avversario
         }
