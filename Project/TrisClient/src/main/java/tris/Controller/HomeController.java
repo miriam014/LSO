@@ -186,7 +186,7 @@ public class HomeController {
                     } else if ("pareggio".equalsIgnoreCase(vinc)) {
                         risultato = "Pareggio";
                     } else if ("non_terminata".equalsIgnoreCase(vinc)) {
-                        risultato = "Abbandonata";  // 👈 abbandono → solo stato TERMINATA
+                        risultato = "Abbandonata";  // abbandono → solo stato TERMINATA
                     } else if (vinc.equalsIgnoreCase(me)) {
                         risultato = "Hai vinto";
                     } else {
@@ -197,12 +197,10 @@ public class HomeController {
                 nuoviItems.add(new PartitaRow(idPartita, avversario, stato, risultato));
             }
 
-            // 🔹 Aggiornamento "upsert" – sostituisco solo se ci sono differenze
             if (!items.equals(nuoviItems)) {
                 tablePartite.setItems(nuoviItems);
                 tablePartite.refresh();
             }
-
             System.out.println("[DEBUG][Home] Tabella aggiornata: " + nuoviItems.size() + " partite");
         }
 

@@ -77,10 +77,7 @@ public class PartitaController {
                     idPartita = Integer.parseInt(tok.substring("partita=".length()));
                 }
             }
-            if (idPartita != Sessione.getIdPartita()) {
-                System.out.println("[DEBUG] Ignoro MOSSA_OK di altra partita " + idPartita);
-                return;
-            }
+            if (idPartita != Sessione.getIdPartita()) { return; }
             aggiornaScacchiera(msg);
         }
 
@@ -88,10 +85,7 @@ public class PartitaController {
         else if (msg.startsWith("STATO_PARTITA")) {
             String[] tokens = msg.split("\\s+");
             int idPartita = Integer.parseInt(tokens[1]);
-            if (idPartita != Sessione.getIdPartita()) {
-                System.out.println("[DEBUG] Ignoro STATO_PARTITA di altra partita " + idPartita);
-                return;
-            }
+            if (idPartita != Sessione.getIdPartita()) { return; }
 
             aggiornaScacchiera(msg);
 
@@ -163,10 +157,7 @@ public class PartitaController {
 
             String avversario = parts[1];
             int idPartita = Integer.parseInt(parts[2]);
-            if (idPartita != Sessione.getIdPartita()) {
-                System.out.println("[DEBUG] Ignoro REMATCH_RICHIESTA di altra partita " + idPartita);
-                return;
-            }
+            if (idPartita != Sessione.getIdPartita()) { return; }
 
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Richiesta di rivincita");
@@ -279,14 +270,13 @@ public class PartitaController {
         boolean idValido = Sessione.getIdPartita() > 0;
 
         trisGrid.setDisable(!(myTurn && idValido));
-    // Mostra “In attesa…” solo se la partita è ancora in corso
+        // Mostra “In attesa…” solo se la partita è ancora in corso
         if (labelResult.isVisible() && (
                 "Hai vinto!".equals(labelResult.getText()) ||
                         "Hai perso!".equals(labelResult.getText()) ||
-                        "Pareggio!".equals(labelResult.getText())
-        )) {
-            // se c'è già un risultato finale, non cambiare nulla
-            return;
+                        "Pareggio!".equals(labelResult.getText()))
+        ) {
+            return;     //se c'è già il risultato non lo sovrascrivo
         }
 
         labelResult.setText("In attesa dell’avversario...");
@@ -327,6 +317,14 @@ public class PartitaController {
 
     public void backHome(ActionEvent actionEvent) {
         try {
+            /*// Se il replayButton è visibile vuol dire che la partita è terminatae se il giocatore torna alla home,
+            //  rifiuta automaticamente la eventuale rivincita pichè non ha premuto rematch quindi non vuole giocare
+            if (replayButton.isVisible()) {
+                int idPartita = Sessione.getIdPartita();
+                Main.getNetClient().send(
+                        MessaggiBuilder.rematchRisposta(Sessione.getUsername(), idPartita, false)
+                );
+            }*/
             Main.getNetClient().send(MessaggiBuilder.miePartite()); // aggiorna lista prima di tornare
             Main.setRoot("home.fxml");
         } catch (Exception e) {

@@ -144,7 +144,9 @@
         pthread_mutex_unlock(&g_lock);
 
         // invio al proprietario
-        send_msg(sock, "ATTESA_AVVERSARIO");
+        char buf[64];
+        snprintf(buf, sizeof(buf), "ATTESA_AVVERSARIO id=%d", p->id);
+        send_msg(sock, buf);
     }
 
     //questo restituisce la lista delle mie partite in corso e terminate
