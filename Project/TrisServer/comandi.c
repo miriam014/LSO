@@ -71,11 +71,17 @@
             if (p->proprietario_sock == sock || p->ospite_sock == sock) {
                 // Avvisa l’altro giocatore se c’è
                 int avversario_sock = (p->proprietario_sock == sock) ? p->ospite_sock : p->proprietario_sock;
+                
                 if (avversario_sock > 0) {
                     char buf[256];
                     snprintf(buf, sizeof(buf), "AVVERSARIO_DISCONNESSO partita=%d", p->id);
                     send_msg(avversario_sock, buf);
                     cmd_mie_partite(avversario_sock); // aggiorna le mie partite dell’avversario
+                
+                    // --- RIFIUTO AUTOMATICO REMATCH SE LA PARTITA ERA TERMINATA ---
+                    if (p->stato == ST_TERMINATA) {
+                        send_msg(avversario_sock, "REMATCH_ESITO accetta=false");
+                    }
                 }
                 // Non cancellare la partita, solo rimuovi il socket
                 if (p->proprietario_sock == sock) p->proprietario_sock = 0;
