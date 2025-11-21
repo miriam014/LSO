@@ -278,8 +278,32 @@ public class PartitaController {
     @FXML
     public void backHome(ActionEvent actionEvent) {
         try {
-            Main.getNetClient().send(MessaggiBuilder.miePartite()); // aggiorna lista prima di tornare
-            Main.setRoot("home.fxml");
+            if (replayButton.isVisible()) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setHeaderText(null);
+                alert.setContentText("Sei sicuro di voler tornare alla Home? Continuare?");
+                ButtonType okBtn = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+                ButtonType cancelBtn = new ButtonType("Annulla", ButtonBar.ButtonData.CANCEL_CLOSE);
+                alert.getButtonTypes().setAll(okBtn, cancelBtn);
+
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == okBtn) {
+                        // Notifica al server che il giocatore ha abbandonato
+                        Main.getNetClient().send(MessaggiBuilder.abbandonaPartita(getUsername(), getIdPartita()));
+                        // Azzera l'id partita locale
+                        Sessione.setIdPartita(0);
+
+                        try {
+                            Main.setRoot("home.fxml");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            } else {
+                Main.getNetClient().send(MessaggiBuilder.miePartite()); // aggiorna lista prima di tornare
+                Main.setRoot("home.fxml");
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
