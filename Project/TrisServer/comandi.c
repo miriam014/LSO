@@ -31,15 +31,21 @@
     /* == I/O  == */
     ssize_t send_msg(int sock, const char *s){
         ssize_t n = strlen(s);
-        if (write(sock, s, n) < 0) return -1;
-        if (write(sock, "\n", 1) < 0) return -1;
+        if (write(sock, s, n) < 0) { 
+            perror("write");
+            return -1;
+        }
+        if (write(sock, "\n", 1) < 0) {
+            perror("write");
+            return -1;
+        }
         return n+1;
     }
 
     /* == Broadcast / Stato == */
     void invia_a_tutti(const char *msg, int escludi_sock){
         for (int i=0; i<MAX_CLIENTS; i++) {
-            if (g_utenti[i].attivo && g_utenti[i].sock!=escludi_sock) 
+            if (g_utenti[i].attivo && g_utenti[i].sock != escludi_sock) 
                 send_msg(g_utenti[i].sock, msg);
         }
     }
@@ -63,6 +69,9 @@
     }
 
     void rimuovi_partite_di_sock(int sock) {
+        Partita *da_avvisare[MAX_PARTITE];
+        int cnt = 0;
+
         pthread_mutex_lock(&g_lock);
         for (int i=0; i<MAX_PARTITE; i++) {
             Partita *p = &g_partite[i];
@@ -71,18 +80,10 @@
             if (p->proprietario_sock == sock || p->ospite_sock == sock) {
                 // Avvisa l’altro giocatore se c’è
                 int avversario_sock = (p->proprietario_sock == sock) ? p->ospite_sock : p->proprietario_sock;
-                
                 if (avversario_sock > 0) {
-                    char buf[256];
-                    snprintf(buf, sizeof(buf), "AVVERSARIO_DISCONNESSO partita=%d", p->id);
-                    send_msg(avversario_sock, buf);
-                    cmd_mie_partite(avversario_sock); // aggiorna le mie partite dell’avversario
-                
-                    // --- RIFIUTO AUTOMATICO REMATCH SE LA PARTITA ERA TERMINATA ---
-                    if (p->stato == ST_TERMINATA) {
-                        send_msg(avversario_sock, "REMATCH_ESITO accetta=false");
-                    }
+                    da_avvisare[cnt++] = p; // salviamo la partita da notificare dopo unlock
                 }
+
                 // Non cancellare la partita, solo rimuovi il socket
                 if (p->proprietario_sock == sock) p->proprietario_sock = 0;
                 if (p->ospite_sock == sock) p->ospite_sock = 0;
@@ -94,6 +95,23 @@
             }
         }
         pthread_mutex_unlock(&g_lock);
+
+        // Notifica ai clienti dopo aver rilasciato il lock
+        for (int i=0; i<cnt; i++) {
+            Partita *p = da_avvisare[i];
+            int avversario_sock = (p->proprietario_sock == 0) ? p->ospite_sock : p->proprietario_sock;
+            if (avversario_sock > 0) {
+                char buf[256];
+                snprintf(buf, sizeof(buf), "AVVERSARIO_DISCONNESSO partita=%d", p->id);
+                send_msg(avversario_sock, buf);
+                cmd_mie_partite(avversario_sock);
+            
+                // --- RIFIUTO AUTOMATICO REMATCH SE LA PARTITA ERA TERMINATA ---
+                if (p->stato == ST_TERMINATA) {
+                    send_msg(avversario_sock, "REMATCH_ESITO accetta=false");
+                }
+            }
+        }
     }
 
 
