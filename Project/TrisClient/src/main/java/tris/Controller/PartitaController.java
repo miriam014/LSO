@@ -18,8 +18,8 @@ public class PartitaController {
     @FXML private Button replayButton;
 
     @FXML private Button btn00, btn01, btn02,
-                         btn10, btn11, btn12,
-                         btn20, btn21, btn22;
+            btn10, btn11, btn12,
+            btn20, btn21, btn22;
     @FXML private GridPane trisGrid;
     @FXML private Button abandonButton;
 
@@ -66,43 +66,56 @@ public class PartitaController {
     private void handleServerMessage(String msg) {
         System.out.println("[PartitaController] Ricevuto: " + msg);
 
-        // === MOSSA_OK e STATO_PARTITA ===
+        // === 1. AGGIORNAMENTO STATO GIOCO ===
         if (msg.startsWith("MOSSA_OK") || msg.startsWith("STATO_PARTITA")) {
             aggiornaScacchiera(msg);
         }
 
-        // === PARTITA_FINITA ===
+        // === 2. FINE PARTITA (Vittoria/Sconfitta/Abbandono) ===
         else if (msg.startsWith("PARTITA_FINITA")) {
             int idPartita = -1;
             String vincitore = "";
             boolean abbandono = msg.contains("abbandono=true");
 
-            // Estrai id partita e vincitore
+            // Parsing dei token
             for (String tok : msg.split("\\s+")) {
                 if (tok.startsWith("id_partita=")) {
-                    idPartita = Integer.parseInt(tok.substring("id_partita=".length()));
+                    try {
+                        idPartita = Integer.parseInt(tok.substring("id_partita=".length()));
+                    } catch (NumberFormatException e) { e.printStackTrace(); }
                 } else if (tok.startsWith("vincitore=")) {
                     vincitore = tok.substring("vincitore=".length()).trim();
                 }
             }
 
-            // Ignora messaggi di altre partite
+            // Ignora messaggi vecchi o di altre partite
             if (idPartita != getIdPartita()) { return; }
 
-            String me = getUsername();
-
-            // Caso speciale: abbandono
+            // --- CASO SPECIALE: L'AVVERSARIO HA ABBANDONATO ---
             if (abbandono) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Partita terminata");
-                alert.setHeaderText(null);
-                alert.setContentText("Il tuo avversario ha abbandonato la partita.");
-                alert.getButtonTypes().setAll(new ButtonType("OK", ButtonBar.ButtonData.OK_DONE));
+                // Mostra alert e poi TORNA ALLA HOME
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Partita terminata");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Il tuo avversario ha abbandonato la partita. Tornerai alla Home.");
+                    alert.showAndWait(); // Blocca finché l'utente non clicca OK
 
-                alert.showAndWait();
-                aggiornaLabel ("il tuo avversario ha abbandonato la partita.");
-            }// Mostra il risultato
-            else if ("pareggio".equalsIgnoreCase(vincitore)) {
+                    // Pulizia e cambio scena
+                    Sessione.setIdPartita(0);
+                    Sessione.setSonoProprietario(false);
+                    try {
+                        Main.setRoot("home.fxml");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+                return; // Importante: esci per non eseguire il resto
+            }
+
+            // --- CASO NORMALE: VITTORIA / PAREGGIO ---
+            String me = getUsername();
+            if ("pareggio".equalsIgnoreCase(vincitore)) {
                 aggiornaLabel("Pareggio!");
             } else if (vincitore.equalsIgnoreCase(me)) {
                 aggiornaLabel("Hai vinto!");
@@ -110,6 +123,7 @@ public class PartitaController {
                 aggiornaLabel("Hai perso!");
             }
 
+            // Aggiorna i pulsanti: nascondi abbandona, mostra rigioca
             abandonButton.setVisible(false);
             abandonButton.setManaged(false);
             replayButton.setVisible(true);
@@ -117,13 +131,15 @@ public class PartitaController {
             trisGrid.setDisable(true);
         }
 
-        // === REMATCH_RICHIESTA ===
+        // === 3. RICHIESTA DI RIVINCITA (REMATCH) ===
         else if (msg.startsWith("REMATCH_RICHIESTA")) {
             String[] parts = msg.split("\\s+");
             if (parts.length < 3) return;
 
             String avversario = parts[1];
             int idPartita = Integer.parseInt(parts[2]);
+
+            // Sicurezza: controllo ID
             if (idPartita != getIdPartita()) { return; }
 
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -137,6 +153,8 @@ public class PartitaController {
             alert.showAndWait().ifPresent(response -> {
                 boolean accetta = (response == accettaBtn);
                 Main.getNetClient().send(MessaggiBuilder.rematchRisposta(getUsername(), idPartita, accetta));
+
+                // Se rifiuto, torno alla home
                 if (!accetta) {
                     try {
                         Main.setRoot("home.fxml");
@@ -147,55 +165,62 @@ public class PartitaController {
             });
         }
 
-        // === REMATCH_ESITO ===
+        // === 4. RISPOSTA ALLA RIVINCITA ===
         else if (msg.startsWith("REMATCH_ESITO")) {
+            // Caso Rifiuto: L'altro ha detto no -> torno alla Home
             if (!msg.contains("accetta=true")) {
-                try {
-                    Main.setRoot("home.fxml");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Rivincita rifiutata");
+                    alert.setHeaderText(null);
+                    alert.setContentText("L'avversario ha rifiutato la rivincita.");
+                    alert.showAndWait();
+                    try {
+                        Main.setRoot("home.fxml");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
                 return;
             }
 
-            // trova il nuovo id partita direttamente dal prossimo STATO_PARTITA che il server manderà
-            // (invece di leggerlo da MIE_PARTITE, così è sempre aggiornato)
-            Main.getNetClient().setOnMessage(msgRematch -> {
-                Platform.runLater(() -> {
-                    if (msgRematch.startsWith("STATO_PARTITA")) {
-                        String[] tokens = msgRematch.split("\\s+");
-                        if (tokens.length > 1) {
-                            try {
-                                int nuovoId = Integer.parseInt(tokens[1]);
-                                Sessione.setIdPartita(nuovoId);
-
-                                // riporta il listener normale
-                                Main.getNetClient().setOnMessage(innerMsg ->
-                                        Platform.runLater(() -> handleServerMessage(innerMsg.trim()))
-                                );
-
-                                // aggiorna subito la UI
-                                resetBoard();
-                                labelResult.setVisible(false);
-                                replayButton.setVisible(false);
-                                replayButton.setManaged(false);
-                                trisGrid.setDisable(false);
-                                abandonButton.setVisible(true);
-                                abandonButton.setManaged(true);
-
-                                // forza il recupero stato
-                                Main.getNetClient().send("STATO_PARTITA " + nuovoId);
-                            } catch (NumberFormatException ignored) {}
-                        }
+            // Caso Accettato: Prendo il NUOVO ID
+            int nuovoId = -1;
+            String[] parts = msg.split("\\s+");
+            for (String p : parts) {
+                if (p.startsWith("nuovo_id=")) {
+                    try {
+                        nuovoId = Integer.parseInt(p.substring("nuovo_id=".length()));
+                    } catch (NumberFormatException e) {
+                        e.printStackTrace();
                     }
-                });
-            });
+                }
+            }
 
-            // chiede al server di inviare subito lo stato per la nuova partita
-            Main.getNetClient().send(MessaggiBuilder.miePartite());
+            if (nuovoId != -1) {
+                System.out.println("[Partita] Rematch accettato! Passo al nuovo ID: " + nuovoId);
+
+                // 1. Aggiorno ID Sessione
+                Sessione.setIdPartita(nuovoId);
+
+                // 2. Resetto la UI per la nuova partita
+                resetBoard();
+                labelResult.setVisible(false);
+
+                replayButton.setVisible(false);
+                replayButton.setManaged(false);
+
+                abandonButton.setVisible(true);
+                abandonButton.setManaged(true);
+
+                trisGrid.setDisable(false);
+
+                // 3. Richiedo lo stato pulito della nuova partita
+                Main.getNetClient().send("STATO_PARTITA " + nuovoId);
+            }
         }
 
-        // === ERRORI ===
+        // === 5. ERRORI GENERICI ===
         else if (msg.startsWith("ERRORE")) {
             System.out.println("[Server ERRORE] " + msg);
         }
@@ -234,7 +259,7 @@ public class PartitaController {
         boolean idValido = getIdPartita() > 0;
 
         trisGrid.setDisable(!(myTurn && idValido));
-        // Mostra “In attesa…” solo se la partita è ancora in corso
+
         // Aggiorna label durante il gioco
         if (scacchiera.length() == 9) {
             if (!trisGrid.isDisabled()) {
@@ -321,18 +346,20 @@ public class PartitaController {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == siBtn) {
+                // 1. Avvisa il server
                 Main.getNetClient().send(MessaggiBuilder.abbandonaPartita(getUsername(), getIdPartita()));
 
-                trisGrid.setVisible(false);
-                abandonButton.setVisible(false);
-                abandonButton.setManaged(false);
+                // 2. Pulisci la sessione locale
+                Sessione.setIdPartita(0);
+                Sessione.setSonoProprietario(false);
 
-                replayButton.setVisible(false);
-                replayButton.setManaged(false);
-
-                aggiornaLabel("Hai abbandonato la partita.");
+                // 3. TORNA SUBITO ALLA HOME
+                try {
+                    Main.setRoot("home.fxml");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
-
 }

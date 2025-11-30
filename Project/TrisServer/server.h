@@ -72,5 +72,7 @@ void invia_a_tutti(const char *msg, int escludi_sock);
 void invia_stato_partita(Partita *p);
 void cmd_stato_partita(int sock, int id_partita);
 void cmd_abbandona_partita(int sock, const char *utente, int id_partita);
+void rimuovi_partite_di_sock(int sock);
+
 
 #endif

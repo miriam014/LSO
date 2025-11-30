@@ -404,73 +404,77 @@
 
         // Risposta al rematch
         void cmd_rematch_risposta(int sock, const char *utente, int id_partita, int accetta) {
-            pthread_mutex_lock(&g_lock);
-            Partita *p = trova_partita(id_partita);
-            if (!p) {
-                pthread_mutex_unlock(&g_lock);
-                send_msg(sock, "ERRORE Partita non trovata");
-                return;
-            }
-
-            int owner_sock = p->proprietario_sock;
-            int guest_sock = p->ospite_sock;
-
-            if (!accetta) {
-                pthread_mutex_unlock(&g_lock);
-                if (owner_sock > 0) send_msg(owner_sock, "REMATCH_ESITO accetta=false");
-                if (guest_sock > 0) send_msg(guest_sock, "REMATCH_ESITO accetta=false");
-                return;
-            }
-
-            // CREA UNA NUOVA PARTITA (nuovo ID)
-            Partita *nuova = NULL;
-            for (int i = 0; i < MAX_PARTITE; i++) {
-                if (g_partite[i].id == 0) {
-                    nuova = &g_partite[i];
-                    break;
-                }
-            }
-
-            if (!nuova) {
-                pthread_mutex_unlock(&g_lock);
-                send_msg(sock, "ERRORE Troppe partite attive");
-                return;
-            }
-
-            nuova->id = g_prossimoId++;
-            strcpy(nuova->proprietario, p->proprietario);
-            strcpy(nuova->ospite, p->ospite);
-            nuova->proprietario_sock = owner_sock;
-            nuova->ospite_sock = guest_sock;
-            nuova->stato = ST_IN_CORSO;
-            azzera_scacchiera(nuova);
-            snprintf(nuova->turno, sizeof(nuova->turno), "%s", nuova->proprietario);
-            nuova->vincitore[0] = '\0';
-            nuova->pronto_proprietario = nuova->pronto_ospite = 0;
-
+        pthread_mutex_lock(&g_lock);
+        Partita *old_p = trova_partita(id_partita);
+        
+        // Controlli di sicurezza
+        if (!old_p) {
             pthread_mutex_unlock(&g_lock);
-
-            if (owner_sock > 0) send_msg(owner_sock, "REMATCH_ESITO accetta=true");
-            if (guest_sock > 0) send_msg(guest_sock, "REMATCH_ESITO accetta=true");
-
-            invia_stato_partita(nuova);
-
-            // Aggiorna entrambi i client con la nuova lista
-            cmd_mie_partite(owner_sock);
-            cmd_mie_partite(guest_sock);
+            send_msg(sock, "ERRORE Partita non trovata");
+            return;
         }
 
+        int owner_sock = old_p->proprietario_sock;
+        int guest_sock = old_p->ospite_sock;
 
-        void cmd_stato_partita(int sock, int id_partita) {
-            pthread_mutex_lock(&g_lock);
-            Partita *p = trova_partita(id_partita);
-            if (p) {
-                invia_stato_partita(p);
-            } else {
-                send_msg(sock, "ERRORE Partita non trovata");
-            }
+        // Se RIFIUTA
+        if (!accetta) {
             pthread_mutex_unlock(&g_lock);
+            if (owner_sock > 0) send_msg(owner_sock, "REMATCH_ESITO accetta=false");
+            if (guest_sock > 0) send_msg(guest_sock, "REMATCH_ESITO accetta=false");
+            return;
         }
+
+        // Se ACCETTA: Creiamo NUOVA partita
+        Partita *nuova = NULL;
+        for (int i = 0; i < MAX_PARTITE; i++) {
+            if (g_partite[i].id == 0) {
+                nuova = &g_partite[i];
+                break;
+            }
+        }
+
+        if (!nuova) {
+            pthread_mutex_unlock(&g_lock);
+            send_msg(sock, "ERRORE Troppe partite attive");
+            return;
+        }
+
+        // Configura la nuova partita copiando i dati dalla vecchia
+        nuova->id = g_prossimoId++;
+        strcpy(nuova->proprietario, old_p->proprietario);
+        strcpy(nuova->ospite, old_p->ospite);
+        nuova->proprietario_sock = owner_sock;
+        nuova->ospite_sock = guest_sock;
+        nuova->stato = ST_IN_CORSO;
+        azzera_scacchiera(nuova);
+        
+        // Il turno parte dal proprietario (o inverti se vuoi)
+        snprintf(nuova->turno, sizeof(nuova->turno), "%s", nuova->proprietario);
+        nuova->vincitore[0] = '\0';
+
+        // IMPORTANTE: Distruggiamo la VECCHIA partita per liberare lo slot
+        // (Non serve più perché ora esiste quella nuova)
+        memset(old_p, 0, sizeof(*old_p)); 
+
+        pthread_mutex_unlock(&g_lock);
+
+        // Costruiamo il messaggio CON IL NUOVO ID
+        char msg[256];
+        snprintf(msg, sizeof(msg), "REMATCH_ESITO accetta=true nuovo_id=%d", nuova->id);
+
+        // Avvisiamo entrambi
+        if (owner_sock > 0) send_msg(owner_sock, msg);
+        if (guest_sock > 0) send_msg(guest_sock, msg);
+
+        // Inviamo subito lo stato della NUOVA partita
+        invia_stato_partita(nuova);
+
+        // Aggiorniamo le liste partite dei client
+        cmd_mie_partite(owner_sock);
+        cmd_mie_partite(guest_sock);
+    }
+        
 
 
         void cmd_abbandona_partita(int sock, const char *utente, int id_partita) {
@@ -515,5 +519,18 @@
 
         // Aggiorno le mie partite del giocatore che ha abbandonato
         cmd_mie_partite(sock);
+    }
+
+    // Incolla questo in fondo a comandi.c
+
+    void cmd_stato_partita(int sock, int id_partita) {
+        pthread_mutex_lock(&g_lock);
+        Partita *p = trova_partita(id_partita);
+        if (p) {
+            invia_stato_partita(p);
+        } else {
+            send_msg(sock, "ERRORE Partita non trovata");
+        }
+        pthread_mutex_unlock(&g_lock);
     }
 
