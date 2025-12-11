@@ -455,7 +455,7 @@
 
         // IMPORTANTE: Distruggiamo la VECCHIA partita per liberare lo slot
         // (Non serve più perché ora esiste quella nuova)
-        memset(old_p, 0, sizeof(*old_p)); 
+        //memset(old_p, 0, sizeof(*old_p)); 
 
         pthread_mutex_unlock(&g_lock);
 
