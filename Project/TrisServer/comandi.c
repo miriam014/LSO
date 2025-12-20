@@ -478,59 +478,75 @@
 
 
         void cmd_abbandona_partita(int sock, const char *utente, int id_partita) {
-        Partita *p = NULL;
-        // Acquisisco lock solo per modificare lo stato della partita
-        pthread_mutex_lock(&g_lock);
-        p = trova_partita(id_partita);
-        if (!p) {
-            pthread_mutex_unlock(&g_lock);
-            send_msg(sock, "ERRORE Partita non trovata");
-            return;
-        }
+            Partita *p = NULL;
+            pthread_mutex_lock(&g_lock);
+            p = trova_partita(id_partita);
+            
+            if (!p) {
+                pthread_mutex_unlock(&g_lock);
+                send_msg(sock, "ERRORE Partita non trovata");
+                return;
+            }
 
-        int is_owner = (sock == p->proprietario_sock);
-        int is_guest = (sock == p->ospite_sock);
-        if (!is_owner && !is_guest) {
-            pthread_mutex_unlock(&g_lock);
-            send_msg(sock, "ERRORE Non fai parte della partita");
-            return;
-        }
+            int is_owner = (sock == p->proprietario_sock);
+            int is_guest = (sock == p->ospite_sock);
+            
+            if (!is_owner && !is_guest) {
+                pthread_mutex_unlock(&g_lock);
+                send_msg(sock, "ERRORE Non fai parte della partita");
+                return;
+            }
 
-        // Imposto lo stato a terminata
-        p->stato = ST_TERMINATA;
-        // Chi non abbandona è il vincitore
-        const char *vincitore_nome = is_owner ? p->ospite : p->proprietario;
-        snprintf(p->vincitore, sizeof(p->vincitore), "%s", vincitore_nome);
+            // === CASO A: PARTITA GIÀ FINITA (Uscita dalla stanza) ===
+            if (p->stato == ST_TERMINATA) {
+                int avversario_sock = is_owner ? p->ospite_sock : p->proprietario_sock;
+                
+                // Se l'avversario è ancora lì, avvisalo
+                if (avversario_sock > 0) {
+                    send_msg(avversario_sock, "AVVERSARIO_USCITO");
+                }
+                
+                // IMPORTANTE: NON azzerare i socket qui (p->proprietario_sock = 0),
+                // altrimenti chi esce si ritrova la tabella dello storico vuota!
+                
+                pthread_mutex_unlock(&g_lock);
+                return; 
+            }
+
+            // === CASO B: PARTITA IN CORSO (Resa vera e propria) ===
+            // (Questo viene chiamato solo dal tasto "Abbandona", NON da "Torna alla Home")
+            p->stato = ST_TERMINATA;
+            
+            const char *vincitore_nome = is_owner ? p->ospite : p->proprietario;
+            snprintf(p->vincitore, sizeof(p->vincitore), "%s", vincitore_nome);
+            
+            int avversario_sock = is_owner ? p->ospite_sock : p->proprietario_sock;
+            
+            pthread_mutex_unlock(&g_lock);
+
+            printf("[DEBUG] %s ha abbandonato la partita %d\n", utente, id_partita);
+
+            if (avversario_sock > 0) {
+                char buf[256];
+                snprintf(buf, sizeof(buf),
+                        "PARTITA_FINITA id_partita=%d abbandono=true scacchiera=%s vincitore=%s",
+                        id_partita, p->scacchiera, p->vincitore);
+                send_msg(avversario_sock, buf);
+                cmd_mie_partite(avversario_sock);
+            }
+
+            cmd_mie_partite(sock);
+        }
         
-        // Notifica all’altro giocatore che l’avversario ha abbandonato
-        int avversario_sock = is_owner ? p->ospite_sock : p->proprietario_sock;
-        printf("[DEBUG] %s ha abbandonato la partita %d\n", utente, id_partita);
 
-        pthread_mutex_unlock(&g_lock);
-
-        if (avversario_sock > 0) {
-            char buf[256];
-            snprintf(buf, sizeof(buf),
-                    "PARTITA_FINITA id_partita=%d abbandono=true scacchiera=%s vincitore=%s",
-                    id_partita, p->scacchiera, p->vincitore);
-            send_msg(avversario_sock, buf);
-            cmd_mie_partite(avversario_sock); // aggiorna lista avversario
+        void cmd_stato_partita(int sock, int id_partita) {
+            pthread_mutex_lock(&g_lock);
+            Partita *p = trova_partita(id_partita);
+            if (p) {
+                invia_stato_partita(p);
+            } else {
+                send_msg(sock, "ERRORE Partita non trovata");
+            }
+            pthread_mutex_unlock(&g_lock);
         }
-
-        // Aggiorno le mie partite del giocatore che ha abbandonato
-        cmd_mie_partite(sock);
-    }
-
-    // Incolla questo in fondo a comandi.c
-
-    void cmd_stato_partita(int sock, int id_partita) {
-        pthread_mutex_lock(&g_lock);
-        Partita *p = trova_partita(id_partita);
-        if (p) {
-            invia_stato_partita(p);
-        } else {
-            send_msg(sock, "ERRORE Partita non trovata");
-        }
-        pthread_mutex_unlock(&g_lock);
-    }
 

@@ -66,18 +66,18 @@ public class PartitaController {
     private void handleServerMessage(String msg) {
         System.out.println("[PartitaController] Ricevuto: " + msg);
 
-        // === 1. AGGIORNAMENTO STATO GIOCO ===
+        // === 1. AGGIORNAMENTO STATO GIOCO (Mossa o Stato) ===
         if (msg.startsWith("MOSSA_OK") || msg.startsWith("STATO_PARTITA")) {
             aggiornaScacchiera(msg);
         }
 
-        // === 2. FINE PARTITA (Vittoria/Sconfitta/Abbandono) ===
+        // === 2. FINE PARTITA (Vittoria, Sconfitta, Pareggio o Abbandono avversario) ===
         else if (msg.startsWith("PARTITA_FINITA")) {
             int idPartita = -1;
             String vincitore = "";
             boolean abbandono = msg.contains("abbandono=true");
 
-            // Parsing dei token
+            // Parsing dei parametri
             for (String tok : msg.split("\\s+")) {
                 if (tok.startsWith("id_partita=")) {
                     try {
@@ -88,32 +88,34 @@ public class PartitaController {
                 }
             }
 
-            // Ignora messaggi vecchi o di altre partite
+            // Ignora messaggi di altre partite
             if (idPartita != getIdPartita()) { return; }
 
-            // --- CASO SPECIALE: L'AVVERSARIO HA ABBANDONATO ---
+            // CASO A: L'avversario ha abbandonato DURANTE la partita (Vittoria a tavolino)
             if (abbandono) {
-                // Mostra alert e poi TORNA ALLA HOME
                 Platform.runLater(() -> {
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Partita terminata");
+                    alert.setTitle("Vittoria a tavolino");
                     alert.setHeaderText(null);
-                    alert.setContentText("Il tuo avversario ha abbandonato la partita. Tornerai alla Home.");
-                    alert.showAndWait(); // Blocca finché l'utente non clicca OK
+                    alert.setContentText("Il tuo avversario ha abbandonato la partita. Sarai reindirizzato alla Home.");
 
-                    // Pulizia e cambio scena
+                    // Blocca finché non preme OK
+                    alert.showAndWait();
+
+                    // Pulizia e uscita forzata alla Home
                     Sessione.setIdPartita(0);
                     Sessione.setSonoProprietario(false);
                     try {
                         Main.setRoot("home.fxml");
+                        Main.getNetClient().send(MessaggiBuilder.miePartite()); // Aggiorna lista
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 });
-                return; // Importante: esci per non eseguire il resto
+                return;
             }
 
-            // --- CASO NORMALE: VITTORIA / PAREGGIO ---
+            // CASO B: Partita finita regolarmente
             String me = getUsername();
             if ("pareggio".equalsIgnoreCase(vincitore)) {
                 aggiornaLabel("Pareggio!");
@@ -123,7 +125,7 @@ public class PartitaController {
                 aggiornaLabel("Hai perso!");
             }
 
-            // Aggiorna i pulsanti: nascondi abbandona, mostra rigioca
+            // Aggiorna UI: Nascondi "Abbandona", Mostra "Rigioca"
             abandonButton.setVisible(false);
             abandonButton.setManaged(false);
             replayButton.setVisible(true);
@@ -131,15 +133,39 @@ public class PartitaController {
             trisGrid.setDisable(true);
         }
 
-        // === 3. RICHIESTA DI RIVINCITA (REMATCH) ===
+        // === 3. AVVERSARIO ESCE DALLA STANZA (DOPO LA FINE DELLA PARTITA) ===
+        else if (msg.equals("AVVERSARIO_USCITO")) {
+            Platform.runLater(() -> {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Info Partita");
+                alert.setHeaderText(null);
+                alert.setContentText("L'avversario ha lasciato la stanza.");
+
+                // Unico tasto OK
+                alert.getButtonTypes().setAll(new ButtonType("OK", ButtonBar.ButtonData.OK_DONE));
+
+                // Blocca finché non si preme OK
+                alert.showAndWait();
+
+                // Al click di OK, torno forzatamente alla Home
+                Sessione.setIdPartita(0);
+                Sessione.setSonoProprietario(false);
+                try {
+                    Main.setRoot("home.fxml");
+                    Main.getNetClient().send(MessaggiBuilder.miePartite());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+
+        // === 4. RICHIESTA RIVINCITA (REMATCH) ===
         else if (msg.startsWith("REMATCH_RICHIESTA")) {
             String[] parts = msg.split("\\s+");
             if (parts.length < 3) return;
 
             String avversario = parts[1];
             int idPartita = Integer.parseInt(parts[2]);
-
-            // Sicurezza: controllo ID
             if (idPartita != getIdPartita()) { return; }
 
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -156,71 +182,58 @@ public class PartitaController {
 
                 // Se rifiuto, torno alla home
                 if (!accetta) {
-                    try {
-                        Main.setRoot("home.fxml");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    try { Main.setRoot("home.fxml"); } catch (Exception e) { e.printStackTrace(); }
                 }
             });
         }
 
-        // === 4. RISPOSTA ALLA RIVINCITA ===
+        // === 5. ESITO RIVINCITA ===
         else if (msg.startsWith("REMATCH_ESITO")) {
-            // Caso Rifiuto: L'altro ha detto no -> torno alla Home
+            // Se l'altro ha rifiutato
             if (!msg.contains("accetta=true")) {
                 Platform.runLater(() -> {
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Rivincita rifiutata");
+                    alert.setTitle("Rivincita negata");
                     alert.setHeaderText(null);
                     alert.setContentText("L'avversario ha rifiutato la rivincita.");
                     alert.showAndWait();
-                    try {
-                        Main.setRoot("home.fxml");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    try { Main.setRoot("home.fxml"); } catch (Exception e) { e.printStackTrace(); }
                 });
                 return;
             }
 
-            // Caso Accettato: Prendo il NUOVO ID
+            // Se accettato: recupera il NUOVO ID della partita
             int nuovoId = -1;
             String[] parts = msg.split("\\s+");
             for (String p : parts) {
                 if (p.startsWith("nuovo_id=")) {
                     try {
                         nuovoId = Integer.parseInt(p.substring("nuovo_id=".length()));
-                    } catch (NumberFormatException e) {
-                        e.printStackTrace();
-                    }
+                    } catch (NumberFormatException e) {}
                 }
             }
 
             if (nuovoId != -1) {
                 System.out.println("[Partita] Rematch accettato! Passo al nuovo ID: " + nuovoId);
 
-                // 1. Aggiorno ID Sessione
+                // Aggiorna ID Sessione
                 Sessione.setIdPartita(nuovoId);
 
-                // 2. Resetto la UI per la nuova partita
+                // Reset completo della UI per la nuova partita
                 resetBoard();
                 labelResult.setVisible(false);
-
                 replayButton.setVisible(false);
                 replayButton.setManaged(false);
-
                 abandonButton.setVisible(true);
                 abandonButton.setManaged(true);
-
                 trisGrid.setDisable(false);
 
-                // 3. Richiedo lo stato pulito della nuova partita
+                // Richiedi lo stato iniziale della nuova partita
                 Main.getNetClient().send("STATO_PARTITA " + nuovoId);
             }
         }
 
-        // === 5. ERRORI GENERICI ===
+        // === 6. ERRORI ===
         else if (msg.startsWith("ERRORE")) {
             System.out.println("[Server ERRORE] " + msg);
         }
@@ -303,30 +316,49 @@ public class PartitaController {
     @FXML
     public void backHome(ActionEvent actionEvent) {
         try {
+            // CASO A: PARTITA FINITA (Il tasto replay è visibile)
+            // Qui l'utente vuole uscire definitivamente dalla stanza post-partita.
             if (replayButton.isVisible()) {
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Esci dalla stanza");
                 alert.setHeaderText(null);
-                alert.setContentText("Sei sicuro di voler tornare alla Home? Continuare?");
-                ButtonType okBtn = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
-                ButtonType cancelBtn = new ButtonType("Annulla", ButtonBar.ButtonData.CANCEL_CLOSE);
-                alert.getButtonTypes().setAll(okBtn, cancelBtn);
+                alert.setContentText("La partita è conclusa. Sei sicuro di voler abbandonare la stanza?");
+
+                ButtonType siBtn = new ButtonType("Sì", ButtonBar.ButtonData.YES);
+                ButtonType noBtn = new ButtonType("No", ButtonBar.ButtonData.NO);
+                alert.getButtonTypes().setAll(siBtn, noBtn);
 
                 alert.showAndWait().ifPresent(response -> {
-                    if (response == okBtn) {
-                        // Notifica al server che il giocatore ha abbandonato
+                    if (response == siBtn) {
+                        // 1. Avviso il server che esco (così manda AVVERSARIO_USCITO all'altro)
                         Main.getNetClient().send(MessaggiBuilder.abbandonaPartita(getUsername(), getIdPartita()));
-                        // Azzera l'id partita locale
-                        Sessione.setIdPartita(0);
 
+                        // 2. Resetto la sessione locale
+                        Sessione.setIdPartita(0);
+                        Sessione.setSonoProprietario(false);
+
+                        // 3. Torno alla Home
                         try {
                             Main.setRoot("home.fxml");
+                            Main.getNetClient().send(MessaggiBuilder.miePartite());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
                 });
-            } else {
-                Main.getNetClient().send(MessaggiBuilder.miePartite()); // aggiorna lista prima di tornare
+            }
+            // CASO B: PARTITA IN CORSO
+            // Qui l'utente vuole solo tornare al menu principale per gestire altre partite.
+            // NON inviamo nessun abbandono al server.
+            else {
+                // 1. Resetto ID locale (smetto di guardare questa partita)
+                Sessione.setIdPartita(0);
+                Sessione.setSonoProprietario(false);
+
+                // 2. Chiedo l'aggiornamento della lista per la Home
+                Main.getNetClient().send(MessaggiBuilder.miePartite());
+
+                // 3. Cambio scena immediato senza alert
                 Main.setRoot("home.fxml");
             }
         } catch (Exception e) {
